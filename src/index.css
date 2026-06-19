@@ -135,3 +135,15 @@
         min-height: 100vh;
     }
 }
+
+@layer components {
+    .lg-sheet[data-side="right"] {
+        width: min(90vw, 960px) !important;
+        max-width: min(90vw, 960px) !important;
+    }
+
+    .xl-sheet[data-side="right"] {
+        width: min(96vw, 1280px) !important;
+        max-width: min(96vw, 1280px) !important;
+    }
+}
