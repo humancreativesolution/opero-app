@@ -8,7 +8,6 @@ const config: CodegenConfig = {
         "typescript",
         {
           "typescript-operations": {
-            preResolveTypes: true,
             skipTypename: true,
             dedupeFragments: true,
           },

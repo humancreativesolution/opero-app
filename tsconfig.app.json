@@ -27,6 +27,8 @@
       "@libraries/*": ["src/libs/*"],
       "@states/*": ["src/states/*"],
       "@resources/*": ["src/resources/*"],
+      "@pages/*": ["src/pages/*"],
+      "@routes/*": ["src/routes/*"],
       "@graphql/*": ["src/graphql/*"],
       "@providers/*": ["src/providers/*"],
     },

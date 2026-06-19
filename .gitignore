@@ -26,4 +26,4 @@ dist-ssr
 .env
 
 # GraphQL Codegen
-src/graphql/generated.ts
+# src/graphql/generated.ts

@@ -14,6 +14,8 @@
       "@hooks/*": ["src/hooks/*"],
       "@states/*": ["src/states/*"],
       "@resources/*": ["src/resources/*"],
+      "@pages/*": ["src/pages/*"],
+      "@routes/*": ["src/routes/*"],
     },
   },
 }

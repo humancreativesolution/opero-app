@@ -1,15 +1,15 @@
 import { Encryptor } from "@libs/encryptor";
 import { forIn, includes, startsWith } from "lodash-es";
 
-const APP_PREFIX = "kelola_saas_";
-const encryptor = new Encryptor("kelolaSaas2023");
+const APP_PREFIX = "opero_";
+const encryptor = new Encryptor("opero2026");
 
 export class LocalStorage {
   static getLength() {
     return localStorage.length;
   }
 
-  static setItem(key: string, value: any) {
+  static setItem(key: string, value: unknown) {
     if (
       value !== "undefined" &&
       typeof value !== "undefined" &&
@@ -41,7 +41,7 @@ export class LocalStorage {
   static clear(exceptKeys?: string[]) {
     const newKeys = exceptKeys?.map((key) => APP_PREFIX + key);
 
-    forIn(window.localStorage, (_value: any, objKey: string) => {
+    forIn(window.localStorage, (_value: unknown, objKey: string) => {
       if (
         startsWith(objKey, APP_PREFIX) === true &&
         !includes(newKeys, objKey)

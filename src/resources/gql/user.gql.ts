@@ -1,5 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { gqlClient } from "@graphql/client";
+import { gqlClient } from "@/libs/graphql";
 import { ErrorHelper } from "@libs/error";
 import { useAtomicSetter } from "@libs/state";
 import { errorAtom } from "@states/atoms/error.atom";

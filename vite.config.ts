@@ -15,6 +15,8 @@ export default defineConfig(({ mode }) => {
         "@components": path.resolve(__dirname, "./src/components"),
         "@libs": path.resolve(__dirname, "./src/libs"),
         "@hooks": path.resolve(__dirname, "./src/hooks"),
+        "@pages": path.resolve(__dirname, "./src/pages"),
+        "@routes": path.resolve(__dirname, "./src/routes"),
         "@graphql": path.resolve(__dirname, "./src/graphql"),
         "@providers": path.resolve(__dirname, "./src/providers"),
       },
