@@ -9,6 +9,7 @@ import PosPage from "@pages/pos";
 import ProductsPage from "@pages/products";
 import PurchasesPage from "@pages/purchases";
 import ReportsPage from "@pages/reports";
+import SalesPage from "@pages/sales";
 import SettingsPage from "@pages/settings";
 import SuppliersPage from "@pages/suppliers";
 import UsersPage from "@pages/users";
@@ -30,6 +31,7 @@ const routes = [
       { index: true, element: <Navigate replace to="/dashboard" /> },
       { path: "dashboard", element: <DashboardPage /> },
       { path: "products", element: <ProductsPage /> },
+      { path: "sales", element: <SalesPage /> },
       { path: "suppliers", element: <SuppliersPage /> },
       { path: "locations", element: <LocationsPage /> },
       { path: "purchases", element: <PurchasesPage /> },

@@ -1,5 +1,6 @@
 import {
   Barcode,
+  CircleDollarSign,
   CreditCard,
   Minus,
   Plus,
@@ -13,9 +14,12 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CloseCashierShiftSheet } from "@/features/cashier-shift/components/close-cashier-shift-sheet.component";
+import { OpenCashierShiftSheet } from "@/features/cashier-shift/components/open-cashier-shift-sheet.component";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ErrorHelper } from "@/libs/error";
+import { useCurrentCashierShift } from "@/resources/gql/cashier-shift.gql";
 import { useLocations } from "@/resources/gql/location.gql";
 import { usePosProducts } from "@/resources/gql/product.gql";
 import { useCreateSale } from "@/resources/gql/sale.gql";
@@ -36,6 +40,8 @@ export default function PosPage() {
   const deferredSearch = useDeferredValue(search);
   const [locationId, setLocationId] = useState("");
   const [paidAmount, setPaidAmount] = useState(0);
+  const [openShiftSheetOpen, setOpenShiftSheetOpen] = useState(false);
+  const [closeShiftSheetOpen, setCloseShiftSheetOpen] = useState(false);
   const locationsQuery = useLocations({
     limit: 100,
     filter: { type: "OUTLET" },
@@ -51,6 +57,12 @@ export default function PosPage() {
     clear,
   } = usePosCartStore();
   const selectedLocationId = locationId || locationsQuery.data?.data[0]?.id || "";
+  const selectedLocation = locationsQuery.data?.data.find(
+    (location) => location.id === selectedLocationId,
+  );
+  const currentShiftQuery = useCurrentCashierShift(selectedLocationId);
+  const currentShift = currentShiftQuery.data;
+  const hasOpenShift = Boolean(currentShift);
   const searchKeyword = deferredSearch.trim();
   const productsQuery = usePosProducts({
     locationId: selectedLocationId,
@@ -81,6 +93,12 @@ export default function PosPage() {
       return;
     }
 
+    if (!hasOpenShift) {
+      toast.error("Open cashier shift before checkout");
+      setOpenShiftSheetOpen(true);
+      return;
+    }
+
     try {
       const result = await createSale.mutateAsync({
         locationId: selectedLocationId,
@@ -101,6 +119,7 @@ export default function PosPage() {
       toast.error("Failed to create sale", {
         description: ErrorHelper.parse(error).message,
       });
+      currentShiftQuery.refetch();
     }
   }
 
@@ -145,16 +164,22 @@ export default function PosPage() {
           ) : (
             posProducts.map((product) => {
               const isOutOfStock = product.stockOnHand <= 0;
+              const isProductDisabled = isOutOfStock || !hasOpenShift;
 
               return (
               <Card
                 className={
-                  isOutOfStock
+                  isProductDisabled
                     ? "cursor-not-allowed opacity-60"
                     : "cursor-pointer transition-colors hover:bg-muted/60"
                 }
                 key={product.id}
                 onClick={() => {
+                  if (!hasOpenShift) {
+                    setOpenShiftSheetOpen(true);
+                    return;
+                  }
+
                   if (isOutOfStock) {
                     return;
                   }
@@ -167,6 +192,8 @@ export default function PosPage() {
                     <CardTitle className="text-base">{product.name}</CardTitle>
                     {isOutOfStock ? (
                       <Badge variant="outline">Out of stock</Badge>
+                    ) : !hasOpenShift ? (
+                      <Badge variant="outline">Shift closed</Badge>
                     ) : null}
                   </div>
                 </CardHeader>
@@ -275,6 +302,68 @@ export default function PosPage() {
             </select>
           </label>
 
+          <div className="rounded-lg border bg-muted/30 p-3 text-sm">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <p className="font-medium">Cashier shift</p>
+                {currentShiftQuery.isLoading && selectedLocationId ? (
+                  <p className="text-xs text-muted-foreground">
+                    Checking active shift...
+                  </p>
+                ) : currentShift ? (
+                  <p className="text-xs text-muted-foreground">
+                    Opened by {currentShift.openedByUserName}
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground">
+                    No open shift for this outlet.
+                  </p>
+                )}
+              </div>
+              <Badge
+                className={
+                  currentShift
+                    ? "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300"
+                    : undefined
+                }
+                variant="outline"
+              >
+                {currentShift ? "OPEN" : "CLOSED"}
+              </Badge>
+            </div>
+            {currentShift ? (
+              <div className="mt-3 grid gap-1 text-xs text-muted-foreground">
+                <div className="flex justify-between gap-3">
+                  <span>Opening cash</span>
+                  <span className="font-medium text-foreground">
+                    {formatCurrency(currentShift.openingCash)}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span>Expected cash</span>
+                  <span className="font-medium text-foreground">
+                    {formatCurrency(currentShift.expectedCash)}
+                  </span>
+                </div>
+              </div>
+            ) : null}
+            <Button
+              className="mt-3 w-full"
+              disabled={!selectedLocationId || currentShiftQuery.isLoading}
+              onClick={() =>
+                currentShift
+                  ? setCloseShiftSheetOpen(true)
+                  : setOpenShiftSheetOpen(true)
+              }
+              size="sm"
+              type="button"
+              variant={currentShift ? "outline" : "default"}
+            >
+              <CircleDollarSign className="size-4" />
+              {currentShift ? "Close shift" : "Open shift"}
+            </Button>
+          </div>
+
           <label className="grid gap-1 text-sm">
             <div className="flex items-center justify-between gap-2">
               <span className="text-muted-foreground">Paid amount</span>
@@ -317,6 +406,7 @@ export default function PosPage() {
               createSale.isPending ||
               items.length === 0 ||
               !selectedLocationId ||
+              !hasOpenShift ||
               paidAmount < totalAmount
             }
             onClick={handleCheckout}
@@ -326,6 +416,19 @@ export default function PosPage() {
           </Button>
         </div>
       </aside>
+
+      <OpenCashierShiftSheet
+        locationId={selectedLocationId}
+        locationName={selectedLocation?.name}
+        onOpenChange={setOpenShiftSheetOpen}
+        open={openShiftSheetOpen}
+      />
+
+      <CloseCashierShiftSheet
+        onOpenChange={setCloseShiftSheetOpen}
+        open={closeShiftSheetOpen}
+        shift={currentShift}
+      />
     </div>
   );
 }

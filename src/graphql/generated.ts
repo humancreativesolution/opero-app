@@ -25,6 +25,43 @@ export type AuthResponse = {
   user: UserResponse;
 };
 
+export type CashierShiftEntity = {
+  __typename?: 'CashierShiftEntity';
+  closedAt?: Maybe<Scalars['DateTime']['output']>;
+  closedByUserId?: Maybe<Scalars['ID']['output']>;
+  closedByUserName?: Maybe<Scalars['String']['output']>;
+  countedCash?: Maybe<Scalars['Float']['output']>;
+  expectedCash: Scalars['Float']['output'];
+  id: Scalars['ID']['output'];
+  locationId: Scalars['ID']['output'];
+  locationName: Scalars['String']['output'];
+  notes?: Maybe<Scalars['String']['output']>;
+  openedAt: Scalars['DateTime']['output'];
+  openedByUserId: Scalars['ID']['output'];
+  openedByUserName: Scalars['String']['output'];
+  openingCash: Scalars['Float']['output'];
+  status: CashierShiftStatus;
+  variance?: Maybe<Scalars['Float']['output']>;
+};
+
+export type CashierShiftFilterInput = {
+  locationId?: InputMaybe<Scalars['ID']['input']>;
+  status?: InputMaybe<CashierShiftStatus>;
+};
+
+/** Status of cashier shift */
+export const CashierShiftStatus = {
+  Closed: 'CLOSED',
+  Open: 'OPEN'
+} as const;
+
+export type CashierShiftStatus = typeof CashierShiftStatus[keyof typeof CashierShiftStatus];
+export type CloseCashierShiftInput = {
+  countedCash: Scalars['Float']['input'];
+  id: Scalars['ID']['input'];
+  notes?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type CreateLocationInput = {
   name: Scalars['String']['input'];
   type: LocationType;
@@ -174,6 +211,7 @@ export type LoginInput = {
 export type Mutation = {
   __typename?: 'Mutation';
   adjustStock: InventoryTransactionEntity;
+  closeCashierShift: CashierShiftEntity;
   createLocation: LocationEntity;
   createProduct: ProductEntity;
   createPurchase: PurchaseEntity;
@@ -185,6 +223,7 @@ export type Mutation = {
   createUser: UserEntity;
   deletePurchase: PurchaseEntity;
   login: AuthResponse;
+  openCashierShift: CashierShiftEntity;
   receivePurchase: PurchaseEntity;
   register: AuthResponse;
   removeLocation: LocationEntity;
@@ -206,6 +245,11 @@ export type Mutation = {
 
 export type MutationAdjustStockArgs = {
   input: StockAdjustmentInput;
+};
+
+
+export type MutationCloseCashierShiftArgs = {
+  input: CloseCashierShiftInput;
 };
 
 
@@ -261,6 +305,11 @@ export type MutationDeletePurchaseArgs = {
 
 export type MutationLoginArgs = {
   loginInput: LoginInput;
+};
+
+
+export type MutationOpenCashierShiftArgs = {
+  input: OpenCashierShiftInput;
 };
 
 
@@ -341,6 +390,18 @@ export type MutationUpdateTenantArgs = {
 
 export type MutationUpdateUserArgs = {
   updateUserInput: UpdateUserInput;
+};
+
+export type OpenCashierShiftInput = {
+  locationId: Scalars['ID']['input'];
+  notes?: InputMaybe<Scalars['String']['input']>;
+  openingCash: Scalars['Float']['input'];
+};
+
+export type PaginatedCashierShifts = {
+  __typename?: 'PaginatedCashierShifts';
+  data: Array<CashierShiftEntity>;
+  meta: PaginationMeta;
 };
 
 export type PaginatedLocations = {
@@ -473,6 +534,9 @@ export const PurchaseStatus = {
 export type PurchaseStatus = typeof PurchaseStatus[keyof typeof PurchaseStatus];
 export type Query = {
   __typename?: 'Query';
+  cashierShift: CashierShiftEntity;
+  cashierShifts: PaginatedCashierShifts;
+  currentCashierShift?: Maybe<CashierShiftEntity>;
   health: Scalars['String']['output'];
   inventoryBalances: Array<InventoryBalance>;
   inventoryTransactions: Array<InventoryTransactionEntity>;
@@ -496,6 +560,23 @@ export type Query = {
   user?: Maybe<UserEntity>;
   users: PaginatedUsers;
   usersByTenant: Array<UserEntity>;
+};
+
+
+export type QueryCashierShiftArgs = {
+  id: Scalars['String']['input'];
+};
+
+
+export type QueryCashierShiftsArgs = {
+  filter?: InputMaybe<CashierShiftFilterInput>;
+  limit?: Scalars['Int']['input'];
+  page?: Scalars['Int']['input'];
+};
+
+
+export type QueryCurrentCashierShiftArgs = {
+  locationId: Scalars['String']['input'];
 };
 
 
@@ -559,6 +640,7 @@ export type QuerySaleArgs = {
 
 
 export type QuerySalesArgs = {
+  filter?: InputMaybe<SaleFilterInput>;
   limit?: Scalars['Int']['input'];
   page?: Scalars['Int']['input'];
 };
@@ -618,6 +700,7 @@ export type RegisterInput = {
 
 export type SaleEntity = {
   __typename?: 'SaleEntity';
+  cashierShiftId?: Maybe<Scalars['ID']['output']>;
   changeAmount: Scalars['Float']['output'];
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
@@ -632,6 +715,11 @@ export type SaleEntity = {
   totalAmount: Scalars['Float']['output'];
   type: SaleType;
   updatedAt: Scalars['DateTime']['output'];
+};
+
+export type SaleFilterInput = {
+  dateFrom?: InputMaybe<Scalars['String']['input']>;
+  dateTo?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type SaleItemEntity = {

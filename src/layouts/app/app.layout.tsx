@@ -5,6 +5,7 @@ import {
   MapPin,
   Package,
   PackageSearch,
+  ReceiptText,
   Settings,
   ShoppingCart,
   Truck,
@@ -20,6 +21,7 @@ import { cn } from "@/libs/utils";
 const mainMenu = [
   { label: "Dashboard", path: "/dashboard", icon: Home },
   { label: "POS", path: "/pos", icon: ShoppingCart },
+  { label: "Sales", path: "/sales", icon: ReceiptText },
   { label: "Products", path: "/products", icon: Package },
   { label: "Suppliers", path: "/suppliers", icon: Truck },
   { label: "Locations", path: "/locations", icon: MapPin },

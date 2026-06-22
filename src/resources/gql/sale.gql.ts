@@ -4,19 +4,21 @@ import type {
   CreateSaleInput,
   PaginatedSales,
   SaleEntity,
+  SaleFilterInput,
 } from "@/graphql/generated";
 import { ErrorHelper } from "@/libs/error";
 import { gqlClient } from "@/libs/graphql";
 import { productKeys } from "@/resources/gql/product.gql";
 
 const GET_SALES = /* GraphQL */ `
-  query GetSales($page: Int, $limit: Int) {
-    sales(page: $page, limit: $limit) {
+  query GetSales($page: Int, $limit: Int, $filter: SaleFilterInput) {
+    sales(page: $page, limit: $limit, filter: $filter) {
       data {
         id
         invoiceNo
         type
         status
+        cashierShiftId
         locationId
         locationName
         totalAmount
@@ -76,6 +78,7 @@ const CREATE_SALE = /* GraphQL */ `
 type SaleListParams = {
   page?: number;
   limit?: number;
+  filter?: SaleFilterInput;
 };
 
 export const saleKeys = {
@@ -88,6 +91,7 @@ export function useSales(params: SaleListParams = {}) {
   const queryParams = {
     page: params.page ?? 1,
     limit: params.limit ?? 50,
+    filter: params.filter,
   };
 
   return useQuery({
