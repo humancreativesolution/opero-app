@@ -2,6 +2,7 @@ import { Navigate, type RouteObject } from "react-router-dom";
 
 import DashboardPage from "@pages/dashboard";
 import InventoryPage from "@pages/inventory";
+import LocationsPage from "@pages/locations";
 import LoginPage from "@pages/login";
 import NotFound from "@pages/not-found";
 import PosPage from "@pages/pos";
@@ -30,6 +31,7 @@ const routes = [
       { path: "dashboard", element: <DashboardPage /> },
       { path: "products", element: <ProductsPage /> },
       { path: "suppliers", element: <SuppliersPage /> },
+      { path: "locations", element: <LocationsPage /> },
       { path: "purchases", element: <PurchasesPage /> },
       { path: "inventory", element: <InventoryPage /> },
       { path: "reports", element: <ReportsPage /> },

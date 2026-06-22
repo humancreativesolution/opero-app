@@ -27,7 +27,7 @@ export type AuthResponse = {
 
 export type CreateLocationInput = {
   name: Scalars['String']['input'];
-  type: Scalars['String']['input'];
+  type: LocationType;
 };
 
 export type CreateProductInput = {
@@ -44,6 +44,19 @@ export type CreatePurchaseInput = {
   locationId: Scalars['ID']['input'];
   purchaseDate?: InputMaybe<Scalars['String']['input']>;
   supplierId: Scalars['ID']['input'];
+};
+
+export type CreateSaleInput = {
+  items: Array<SaleItemInput>;
+  locationId: Scalars['ID']['input'];
+  paidAmount: Scalars['Float']['input'];
+};
+
+export type CreateSaleReturnInput = {
+  items: Array<SaleReturnItemInput>;
+  reason: Scalars['String']['input'];
+  referenceSaleId: Scalars['ID']['input'];
+  refundAmount?: InputMaybe<Scalars['Float']['input']>;
 };
 
 export type CreateSupplierInput = {
@@ -131,10 +144,21 @@ export type LocationEntity = {
   id: Scalars['String']['output'];
   name: Scalars['String']['output'];
   tenantId: Scalars['String']['output'];
-  type: Scalars['String']['output'];
+  type: LocationType;
   updatedAt?: Maybe<Scalars['DateTime']['output']>;
 };
 
+export type LocationFilterInput = {
+  type?: InputMaybe<LocationType>;
+};
+
+/** Type of business location */
+export const LocationType = {
+  Outlet: 'OUTLET',
+  Warehouse: 'WAREHOUSE'
+} as const;
+
+export type LocationType = typeof LocationType[keyof typeof LocationType];
 export type LoginInput = {
   email: Scalars['String']['input'];
   password: Scalars['String']['input'];
@@ -148,12 +172,15 @@ export type Mutation = {
   createLocation: LocationEntity;
   createProduct: ProductEntity;
   createPurchase: PurchaseEntity;
+  createSale: SaleEntity;
+  createSaleReturn: SaleEntity;
   createSupplier: SupplierEntity;
   createTenant: TenantEntity;
   createTenantWithOwner: CreateTenantWithOwnerResponse;
   createUser: UserEntity;
   deletePurchase: PurchaseEntity;
   login: AuthResponse;
+  receivePurchase: PurchaseEntity;
   register: AuthResponse;
   removeLocation: LocationEntity;
   removeProduct: ProductEntity;
@@ -191,6 +218,16 @@ export type MutationCreatePurchaseArgs = {
 };
 
 
+export type MutationCreateSaleArgs = {
+  createSaleInput: CreateSaleInput;
+};
+
+
+export type MutationCreateSaleReturnArgs = {
+  createSaleReturnInput: CreateSaleReturnInput;
+};
+
+
 export type MutationCreateSupplierArgs = {
   createSupplierInput: CreateSupplierInput;
 };
@@ -218,6 +255,11 @@ export type MutationDeletePurchaseArgs = {
 
 export type MutationLoginArgs = {
   loginInput: LoginInput;
+};
+
+
+export type MutationReceivePurchaseArgs = {
+  input: ReceivePurchaseInput;
 };
 
 
@@ -296,9 +338,21 @@ export type PaginatedLocations = {
   meta: PaginationMeta;
 };
 
+export type PaginatedPosProducts = {
+  __typename?: 'PaginatedPosProducts';
+  data: Array<PosProduct>;
+  meta: PaginationMeta;
+};
+
 export type PaginatedProducts = {
   __typename?: 'PaginatedProducts';
   data: Array<ProductEntity>;
+  meta: PaginationMeta;
+};
+
+export type PaginatedSales = {
+  __typename?: 'PaginatedSales';
+  data: Array<SaleEntity>;
   meta: PaginationMeta;
 };
 
@@ -328,6 +382,27 @@ export type PaginationMeta = {
   page: Scalars['Int']['output'];
   totalCount: Scalars['Int']['output'];
   totalPages: Scalars['Int']['output'];
+};
+
+export type PosProduct = {
+  __typename?: 'PosProduct';
+  barcode?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  locationId: Scalars['ID']['output'];
+  locationName: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  sellingPrice: Scalars['Float']['output'];
+  sku?: Maybe<Scalars['String']['output']>;
+  stockOnHand: Scalars['Int']['output'];
+};
+
+export type PosProductFilterInput = {
+  inStockOnly?: InputMaybe<Scalars['Boolean']['input']>;
+  limit?: Scalars['Int']['input'];
+  locationId: Scalars['ID']['input'];
+  page?: Scalars['Int']['input'];
+  search?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type ProductEntity = {
@@ -380,6 +455,7 @@ export const PurchaseStatus = {
   Cancelled: 'CANCELLED',
   Confirmed: 'CONFIRMED',
   Draft: 'DRAFT',
+  PartiallyReceived: 'PARTIALLY_RECEIVED',
   Received: 'RECEIVED'
 } as const;
 
@@ -393,11 +469,14 @@ export type Query = {
   locations: PaginatedLocations;
   locationsByTenant: Array<LocationEntity>;
   me: UserResponse;
+  posProducts: PaginatedPosProducts;
   product?: Maybe<ProductEntity>;
   products: PaginatedProducts;
   productsByTenant: Array<ProductEntity>;
   purchase: PurchaseEntity;
   purchases: Array<PurchaseEntity>;
+  sale?: Maybe<SaleEntity>;
+  sales: PaginatedSales;
   supplier?: Maybe<SupplierEntity>;
   suppliers: PaginatedSuppliers;
   suppliersByTenant: Array<SupplierEntity>;
@@ -425,8 +504,19 @@ export type QueryLocationArgs = {
 
 
 export type QueryLocationsArgs = {
+  filter?: InputMaybe<LocationFilterInput>;
   limit?: Scalars['Int']['input'];
   page?: Scalars['Int']['input'];
+};
+
+
+export type QueryLocationsByTenantArgs = {
+  filter?: InputMaybe<LocationFilterInput>;
+};
+
+
+export type QueryPosProductsArgs = {
+  filter: PosProductFilterInput;
 };
 
 
@@ -447,6 +537,17 @@ export type QueryPurchaseArgs = {
 
 
 export type QueryPurchasesArgs = {
+  limit?: Scalars['Int']['input'];
+  page?: Scalars['Int']['input'];
+};
+
+
+export type QuerySaleArgs = {
+  id: Scalars['String']['input'];
+};
+
+
+export type QuerySalesArgs = {
   limit?: Scalars['Int']['input'];
   page?: Scalars['Int']['input'];
 };
@@ -484,6 +585,17 @@ export type QueryUsersArgs = {
   page?: Scalars['Int']['input'];
 };
 
+export type ReceivePurchaseInput = {
+  items: Array<ReceivePurchaseItemInput>;
+  purchaseId: Scalars['ID']['input'];
+};
+
+export type ReceivePurchaseItemInput = {
+  costPrice?: InputMaybe<Scalars['Float']['input']>;
+  purchaseItemId: Scalars['ID']['input'];
+  receivedQty: Scalars['Int']['input'];
+};
+
 export type RegisterInput = {
   email: Scalars['String']['input'];
   fullName: Scalars['String']['input'];
@@ -493,6 +605,60 @@ export type RegisterInput = {
   subdomain: Scalars['String']['input'];
 };
 
+export type SaleEntity = {
+  __typename?: 'SaleEntity';
+  changeAmount: Scalars['Float']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  invoiceNo: Scalars['String']['output'];
+  items: Array<SaleItemEntity>;
+  locationId: Scalars['ID']['output'];
+  locationName: Scalars['String']['output'];
+  paidAmount: Scalars['Float']['output'];
+  reason?: Maybe<Scalars['String']['output']>;
+  referenceSaleId?: Maybe<Scalars['ID']['output']>;
+  status: SaleStatus;
+  totalAmount: Scalars['Float']['output'];
+  type: SaleType;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type SaleItemEntity = {
+  __typename?: 'SaleItemEntity';
+  costSnapshot: Scalars['Float']['output'];
+  id: Scalars['ID']['output'];
+  productId: Scalars['ID']['output'];
+  productName: Scalars['String']['output'];
+  profit: Scalars['Float']['output'];
+  qty: Scalars['Int']['output'];
+  sellingPrice: Scalars['Float']['output'];
+};
+
+export type SaleItemInput = {
+  productId: Scalars['ID']['input'];
+  qty: Scalars['Int']['input'];
+  sellingPrice?: InputMaybe<Scalars['Float']['input']>;
+};
+
+export type SaleReturnItemInput = {
+  productId: Scalars['ID']['input'];
+  qty: Scalars['Int']['input'];
+};
+
+/** Status of sales transaction */
+export const SaleStatus = {
+  Cancelled: 'CANCELLED',
+  Completed: 'COMPLETED'
+} as const;
+
+export type SaleStatus = typeof SaleStatus[keyof typeof SaleStatus];
+/** Type of sales transaction */
+export const SaleType = {
+  Return: 'RETURN',
+  Sale: 'SALE'
+} as const;
+
+export type SaleType = typeof SaleType[keyof typeof SaleType];
 export type StockAdjustmentInput = {
   adjustmentType: AdjustmentType;
   locationId: Scalars['ID']['input'];
@@ -534,7 +700,7 @@ export type TenantEntity = {
 export type UpdateLocationInput = {
   id: Scalars['String']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
-  type?: InputMaybe<Scalars['String']['input']>;
+  type?: InputMaybe<LocationType>;
 };
 
 export type UpdateProductInput = {

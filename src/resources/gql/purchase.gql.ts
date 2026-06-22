@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   CreatePurchaseInput,
   PurchaseEntity,
+  ReceivePurchaseInput,
   UpdatePurchaseStatusInput,
 } from "@/graphql/generated";
 import { ErrorHelper } from "@/libs/error";
@@ -67,6 +68,31 @@ const UPDATE_PURCHASE_STATUS = /* GraphQL */ `
   }
 `;
 
+const RECEIVE_PURCHASE = /* GraphQL */ `
+  mutation ReceivePurchase($input: ReceivePurchaseInput!) {
+    receivePurchase(input: $input) {
+      id
+      purchaseNo
+      purchaseDate
+      supplierId
+      supplierName
+      locationId
+      locationName
+      status
+      totalAmount
+      createdAt
+      items {
+        id
+        productId
+        productName
+        qty
+        costPrice
+        subtotal
+      }
+    }
+  }
+`;
+
 type PurchaseListParams = {
   page?: number;
   limit?: number;
@@ -124,6 +150,23 @@ export function useUpdatePurchaseStatus() {
           input,
         },
       ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: purchaseKeys.lists() });
+    },
+    onError: (error: unknown) => {
+      throw ErrorHelper.parse(error);
+    },
+  });
+}
+
+export function useReceivePurchase() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: ReceivePurchaseInput) =>
+      gqlClient.request<{ receivePurchase: PurchaseEntity }>(RECEIVE_PURCHASE, {
+        input,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: purchaseKeys.lists() });
     },

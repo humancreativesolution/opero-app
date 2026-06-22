@@ -60,7 +60,10 @@ export function PurchaseFormSheet({
 }: PurchaseFormSheetProps) {
   const createPurchase = useCreatePurchase();
   const suppliersQuery = useSuppliers({ limit: 100 });
-  const locationsQuery = useLocations({ limit: 100 });
+  const locationsQuery = useLocations({
+    limit: 100,
+    filter: { type: "WAREHOUSE" },
+  });
   const productsQuery = useProducts({ limit: 100 });
   const form = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseFormSchema),
@@ -157,13 +160,13 @@ export function PurchaseFormSheet({
                 name="locationId"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Location</FormLabel>
+                    <FormLabel>Warehouse</FormLabel>
                     <FormControl>
                       <select
                         className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
                         {...field}
                       >
-                        <option value="">Select location</option>
+                        <option value="">Select warehouse</option>
                         {(locationsQuery.data?.data ?? []).map((location) => (
                           <option key={location.id} value={location.id}>
                             {location.name}

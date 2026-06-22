@@ -1,11 +1,18 @@
-import { useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import type { LocationEntity, PaginatedLocations } from "@/graphql/generated";
+import type {
+  CreateLocationInput,
+  LocationFilterInput,
+  LocationEntity,
+  PaginatedLocations,
+  UpdateLocationInput,
+} from "@/graphql/generated";
+import { ErrorHelper } from "@/libs/error";
 import { gqlClient } from "@/libs/graphql";
 
 const GET_LOCATIONS = /* GraphQL */ `
-  query GetLocations($page: Int, $limit: Int) {
-    locations(page: $page, limit: $limit) {
+  query GetLocations($page: Int, $limit: Int, $filter: LocationFilterInput) {
+    locations(page: $page, limit: $limit, filter: $filter) {
       data {
         id
         name
@@ -26,8 +33,32 @@ const GET_LOCATIONS = /* GraphQL */ `
 `;
 
 const GET_LOCATIONS_BY_TENANT = /* GraphQL */ `
-  query GetLocationsByTenant {
-    locationsByTenant {
+  query GetLocationsByTenant($filter: LocationFilterInput) {
+    locationsByTenant(filter: $filter) {
+      id
+      name
+      type
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const CREATE_LOCATION = /* GraphQL */ `
+  mutation CreateLocation($createLocationInput: CreateLocationInput!) {
+    createLocation(createLocationInput: $createLocationInput) {
+      id
+      name
+      type
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const UPDATE_LOCATION = /* GraphQL */ `
+  mutation UpdateLocation($updateLocationInput: UpdateLocationInput!) {
+    updateLocation(updateLocationInput: $updateLocationInput) {
       id
       name
       type
@@ -40,6 +71,7 @@ const GET_LOCATIONS_BY_TENANT = /* GraphQL */ `
 type LocationListParams = {
   page?: number;
   limit?: number;
+  filter?: LocationFilterInput;
 };
 
 export const locationKeys = {
@@ -47,13 +79,15 @@ export const locationKeys = {
   lists: () => [...locationKeys.all, "list"] as const,
   list: (params: LocationListParams) =>
     [...locationKeys.lists(), params] as const,
-  byTenant: () => [...locationKeys.all, "by-tenant"] as const,
+  byTenant: (params: Pick<LocationListParams, "filter"> = {}) =>
+    [...locationKeys.all, "by-tenant", params] as const,
 };
 
 export function useLocations(params: LocationListParams = {}) {
   const queryParams = {
     page: params.page ?? 1,
     limit: params.limit ?? 50,
+    filter: params.filter,
   };
 
   return useQuery({
@@ -67,13 +101,50 @@ export function useLocations(params: LocationListParams = {}) {
   });
 }
 
-export function useLocationsByTenant() {
+export function useLocationsByTenant(params: Pick<LocationListParams, "filter"> = {}) {
   return useQuery({
-    queryKey: locationKeys.byTenant(),
+    queryKey: locationKeys.byTenant(params),
     queryFn: () =>
       gqlClient.request<{ locationsByTenant: LocationEntity[] }>(
         GET_LOCATIONS_BY_TENANT,
+        params,
       ),
     select: (data) => data.locationsByTenant,
+  });
+}
+
+export function useCreateLocation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (createLocationInput: CreateLocationInput) =>
+      gqlClient.request<{ createLocation: LocationEntity }>(CREATE_LOCATION, {
+        createLocationInput,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: locationKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: locationKeys.all });
+    },
+    onError: (error: unknown) => {
+      throw ErrorHelper.parse(error);
+    },
+  });
+}
+
+export function useUpdateLocation() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (updateLocationInput: UpdateLocationInput) =>
+      gqlClient.request<{ updateLocation: LocationEntity }>(UPDATE_LOCATION, {
+        updateLocationInput,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: locationKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: locationKeys.all });
+    },
+    onError: (error: unknown) => {
+      throw ErrorHelper.parse(error);
+    },
   });
 }

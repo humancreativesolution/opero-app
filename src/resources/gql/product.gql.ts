@@ -2,7 +2,9 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type {
   CreateProductInput,
+  PaginatedPosProducts,
   PaginatedProducts,
+  PosProductFilterInput,
   ProductEntity,
   UpdateProductInput,
 } from "@/graphql/generated";
@@ -67,6 +69,32 @@ const UPDATE_PRODUCT = /* GraphQL */ `
   }
 `;
 
+const GET_POS_PRODUCTS = /* GraphQL */ `
+  query GetPosProducts($filter: PosProductFilterInput!) {
+    posProducts(filter: $filter) {
+      data {
+        id
+        sku
+        barcode
+        name
+        sellingPrice
+        isActive
+        stockOnHand
+        locationId
+        locationName
+      }
+      meta {
+        page
+        limit
+        totalCount
+        totalPages
+        hasNextPage
+        hasPrevPage
+      }
+    }
+  }
+`;
+
 type ProductListParams = {
   page?: number;
   limit?: number;
@@ -76,6 +104,9 @@ export const productKeys = {
   all: ["products"] as const,
   lists: () => [...productKeys.all, "list"] as const,
   list: (params: ProductListParams) => [...productKeys.lists(), params] as const,
+  posLists: () => [...productKeys.all, "pos-list"] as const,
+  posList: (filter: PosProductFilterInput) =>
+    [...productKeys.posLists(), filter] as const,
 };
 
 export function useProducts(params: ProductListParams = {}) {
@@ -89,6 +120,19 @@ export function useProducts(params: ProductListParams = {}) {
     queryFn: () =>
       gqlClient.request<{ products: PaginatedProducts }>(GET_PRODUCTS, queryParams),
     select: (data) => data.products,
+  });
+}
+
+export function usePosProducts(filter: PosProductFilterInput) {
+  return useQuery({
+    enabled: Boolean(filter.locationId),
+    queryKey: productKeys.posList(filter),
+    queryFn: () =>
+      gqlClient.request<{ posProducts: PaginatedPosProducts }>(
+        GET_POS_PRODUCTS,
+        { filter },
+      ),
+    select: (data) => data.posProducts,
   });
 }
 
