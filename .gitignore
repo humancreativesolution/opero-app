@@ -27,3 +27,4 @@ dist-ssr
 
 # GraphQL Codegen
 # src/graphql/generated.ts
+.commandcode/
