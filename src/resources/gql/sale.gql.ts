@@ -2,6 +2,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type {
   CreateSaleInput,
+  CreateSaleReturnInput,
   PaginatedSales,
   SaleEntity,
   SaleFilterInput,
@@ -93,6 +94,44 @@ const CREATE_SALE = /* GraphQL */ `
   }
 `;
 
+const CREATE_SALE_RETURN = /* GraphQL */ `
+  mutation CreateSaleReturn($createSaleReturnInput: CreateSaleReturnInput!) {
+    createSaleReturn(createSaleReturnInput: $createSaleReturnInput) {
+      id
+      invoiceNo
+      type
+      status
+      referenceSaleId
+      reason
+      locationId
+      locationName
+      totalAmount
+      paidAmount
+      changeAmount
+      payments {
+        id
+        method
+        amount
+        provider
+        referenceNo
+        notes
+        createdAt
+      }
+      createdAt
+      updatedAt
+      items {
+        id
+        productId
+        productName
+        qty
+        sellingPrice
+        costSnapshot
+        profit
+      }
+    }
+  }
+`;
+
 type SaleListParams = {
   page?: number;
   limit?: number;
@@ -127,6 +166,24 @@ export function useCreateSale() {
     mutationFn: (createSaleInput: CreateSaleInput) =>
       gqlClient.request<{ createSale: SaleEntity }>(CREATE_SALE, {
         createSaleInput,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: saleKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: productKeys.posLists() });
+    },
+    onError: (error: unknown) => {
+      throw ErrorHelper.parse(error);
+    },
+  });
+}
+
+export function useCreateSaleReturn() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (createSaleReturnInput: CreateSaleReturnInput) =>
+      gqlClient.request<{ createSaleReturn: SaleEntity }>(CREATE_SALE_RETURN, {
+        createSaleReturnInput,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: saleKeys.lists() });

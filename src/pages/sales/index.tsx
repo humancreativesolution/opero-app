@@ -1,11 +1,12 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Eye, ReceiptText, Search } from "lucide-react";
+import { RotateCcw, Eye, ReceiptText, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { DataTable } from "@/components/data-table/data-table.component";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { SaleReturnFormSheet } from "@/features/sale/components/sale-return-form-sheet.component";
 import {
   Dialog,
   DialogContent,
@@ -65,6 +66,7 @@ export default function SalesPage() {
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [selectedSale, setSelectedSale] = useState<SaleEntity | null>(null);
+  const [returnSheetOpen, setReturnSheetOpen] = useState(false);
   const salesQuery = useSales({
     page,
     limit,
@@ -262,14 +264,30 @@ export default function SalesPage() {
       >
         <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>{selectedSale?.invoiceNo}</DialogTitle>
-            <DialogDescription>
-              {selectedSale
-                ? `${selectedSale.locationName} · ${formatDate(
-                    selectedSale.createdAt,
-                  )}`
-                : null}
-            </DialogDescription>
+            <div className="flex items-start justify-between gap-4 pr-8">
+              <div>
+                <DialogTitle>{selectedSale?.invoiceNo}</DialogTitle>
+                <DialogDescription>
+                  {selectedSale
+                    ? `${selectedSale.locationName} · ${formatDate(
+                        selectedSale.createdAt,
+                      )}`
+                    : null}
+                </DialogDescription>
+              </div>
+              {selectedSale?.type === "SALE" &&
+              selectedSale.status === "COMPLETED" ? (
+                <Button
+                  onClick={() => setReturnSheetOpen(true)}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  <RotateCcw className="size-4" />
+                  Return sale
+                </Button>
+              ) : null}
+            </div>
           </DialogHeader>
           {selectedSale ? (
             <div className="space-y-4">
@@ -369,6 +387,15 @@ export default function SalesPage() {
           ) : null}
         </DialogContent>
       </Dialog>
+
+      <SaleReturnFormSheet
+        onOpenChange={setReturnSheetOpen}
+        onSuccess={() => {
+          setSelectedSale(null);
+        }}
+        open={returnSheetOpen}
+        sale={selectedSale}
+      />
     </div>
   );
 }
