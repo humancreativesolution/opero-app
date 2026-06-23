@@ -16,6 +16,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { CloseCashierShiftSheet } from "@/features/cashier-shift/components/close-cashier-shift-sheet.component";
 import { OpenCashierShiftSheet } from "@/features/cashier-shift/components/open-cashier-shift-sheet.component";
+import type { PaymentMethod } from "@/graphql/generated";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ErrorHelper } from "@/libs/error";
@@ -40,6 +41,7 @@ export default function PosPage() {
   const deferredSearch = useDeferredValue(search);
   const [locationId, setLocationId] = useState("");
   const [paidAmount, setPaidAmount] = useState(0);
+  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
   const [openShiftSheetOpen, setOpenShiftSheetOpen] = useState(false);
   const [closeShiftSheetOpen, setCloseShiftSheetOpen] = useState(false);
   const locationsQuery = useLocations({
@@ -103,6 +105,12 @@ export default function PosPage() {
       const result = await createSale.mutateAsync({
         locationId: selectedLocationId,
         paidAmount,
+        payments: [
+          {
+            method: paymentMethod,
+            amount: paidAmount,
+          },
+        ],
         items: items.map((item) => ({
           productId: item.productId,
           qty: item.qty,
@@ -115,6 +123,7 @@ export default function PosPage() {
       });
       clear();
       setPaidAmount(0);
+      setPaymentMethod("CASH");
     } catch (error) {
       toast.error("Failed to create sale", {
         description: ErrorHelper.parse(error).message,
@@ -363,6 +372,22 @@ export default function PosPage() {
               {currentShift ? "Close shift" : "Open shift"}
             </Button>
           </div>
+
+          <label className="grid gap-1 text-sm">
+            <span className="text-muted-foreground">Payment method</span>
+            <select
+              className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
+              onChange={(event) =>
+                setPaymentMethod(event.target.value as PaymentMethod)
+              }
+              value={paymentMethod}
+            >
+              <option value="CASH">Cash</option>
+              <option value="QRIS">QRIS</option>
+              <option value="CARD">Card</option>
+              <option value="TRANSFER">Transfer</option>
+            </select>
+          </label>
 
           <label className="grid gap-1 text-sm">
             <div className="flex items-center justify-between gap-2">

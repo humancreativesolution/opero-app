@@ -155,6 +155,21 @@ export default function SalesPage() {
         ),
       },
       {
+        id: "payment",
+        header: "Payment",
+        cell: ({ row }) => (
+          <div className="flex flex-wrap gap-1">
+            {row.original.payments.length > 0
+              ? row.original.payments.map((payment) => (
+                  <Badge key={payment.id} variant="secondary">
+                    {payment.method}
+                  </Badge>
+                ))
+              : "-"}
+          </div>
+        ),
+      },
+      {
         id: "actions",
         header: () => <div className="text-right">Action</div>,
         cell: ({ row }) => (
@@ -279,6 +294,38 @@ export default function SalesPage() {
                     {formatCurrency(selectedSale.changeAmount)}
                   </span>
                 </div>
+              </div>
+
+              <div className="rounded-lg border p-3">
+                <h3 className="mb-2 text-sm font-medium">Payments</h3>
+                {selectedSale.payments.length > 0 ? (
+                  <div className="space-y-2">
+                    {selectedSale.payments.map((payment) => (
+                      <div
+                        className="flex items-center justify-between gap-3 text-sm"
+                        key={payment.id}
+                      >
+                        <div>
+                          <p className="font-medium">{payment.method}</p>
+                          {payment.referenceNo || payment.provider ? (
+                            <p className="text-xs text-muted-foreground">
+                              {[payment.provider, payment.referenceNo]
+                                .filter(Boolean)
+                                .join(" · ")}
+                            </p>
+                          ) : null}
+                        </div>
+                        <span className="font-medium">
+                          {formatCurrency(payment.amount)}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-sm text-muted-foreground">
+                    No payment details.
+                  </p>
+                )}
               </div>
 
               <div className="overflow-hidden rounded-lg border">

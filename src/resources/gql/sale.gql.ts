@@ -24,6 +24,15 @@ const GET_SALES = /* GraphQL */ `
         totalAmount
         paidAmount
         changeAmount
+        payments {
+          id
+          method
+          amount
+          provider
+          referenceNo
+          notes
+          createdAt
+        }
         createdAt
         updatedAt
         items {
@@ -60,6 +69,15 @@ const CREATE_SALE = /* GraphQL */ `
       totalAmount
       paidAmount
       changeAmount
+      payments {
+        id
+        method
+        amount
+        provider
+        referenceNo
+        notes
+        createdAt
+      }
       createdAt
       updatedAt
       items {

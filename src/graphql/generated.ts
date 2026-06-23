@@ -86,7 +86,8 @@ export type CreatePurchaseInput = {
 export type CreateSaleInput = {
   items: Array<SaleItemInput>;
   locationId: Scalars['ID']['input'];
-  paidAmount: Scalars['Float']['input'];
+  paidAmount?: InputMaybe<Scalars['Float']['input']>;
+  payments?: InputMaybe<Array<SalePaymentInput>>;
 };
 
 export type CreateSaleReturnInput = {
@@ -94,6 +95,7 @@ export type CreateSaleReturnInput = {
   reason: Scalars['String']['input'];
   referenceSaleId: Scalars['ID']['input'];
   refundAmount?: InputMaybe<Scalars['Float']['input']>;
+  refundPayment?: InputMaybe<SaleRefundPaymentInput>;
 };
 
 export type CreateSupplierInput = {
@@ -456,6 +458,15 @@ export type PaginationMeta = {
   totalPages: Scalars['Int']['output'];
 };
 
+/** Manual payment method for sales transaction */
+export const PaymentMethod = {
+  Card: 'CARD',
+  Cash: 'CASH',
+  Qris: 'QRIS',
+  Transfer: 'TRANSFER'
+} as const;
+
+export type PaymentMethod = typeof PaymentMethod[keyof typeof PaymentMethod];
 export type PosProduct = {
   __typename?: 'PosProduct';
   barcode?: Maybe<Scalars['String']['output']>;
@@ -709,6 +720,7 @@ export type SaleEntity = {
   locationId: Scalars['ID']['output'];
   locationName: Scalars['String']['output'];
   paidAmount: Scalars['Float']['output'];
+  payments: Array<SalePaymentEntity>;
   reason?: Maybe<Scalars['String']['output']>;
   referenceSaleId?: Maybe<Scalars['ID']['output']>;
   status: SaleStatus;
@@ -737,6 +749,32 @@ export type SaleItemInput = {
   productId: Scalars['ID']['input'];
   qty: Scalars['Int']['input'];
   sellingPrice?: InputMaybe<Scalars['Float']['input']>;
+};
+
+export type SalePaymentEntity = {
+  __typename?: 'SalePaymentEntity';
+  amount: Scalars['Float']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  method: PaymentMethod;
+  notes?: Maybe<Scalars['String']['output']>;
+  provider?: Maybe<Scalars['String']['output']>;
+  referenceNo?: Maybe<Scalars['String']['output']>;
+};
+
+export type SalePaymentInput = {
+  amount: Scalars['Float']['input'];
+  method: PaymentMethod;
+  notes?: InputMaybe<Scalars['String']['input']>;
+  provider?: InputMaybe<Scalars['String']['input']>;
+  referenceNo?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type SaleRefundPaymentInput = {
+  method: PaymentMethod;
+  notes?: InputMaybe<Scalars['String']['input']>;
+  provider?: InputMaybe<Scalars['String']['input']>;
+  referenceNo?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type SaleReturnItemInput = {
