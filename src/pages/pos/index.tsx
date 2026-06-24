@@ -8,7 +8,7 @@ import {
   ShoppingCart,
   Trash2,
 } from "lucide-react";
-import { useDeferredValue, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +36,32 @@ function formatCurrency(value: number) {
   return currencyFormatter.format(value);
 }
 
+function getDisplaySellingPrice(product: {
+  originalPrice: number;
+  sellingPrice: number;
+  discountAmount: number;
+  promotionId?: string | null;
+}) {
+  const hasDiscount =
+    Boolean(product.promotionId) ||
+    product.discountAmount > 0 ||
+    product.sellingPrice < product.originalPrice;
+
+  if (!hasDiscount) {
+    return product.sellingPrice;
+  }
+
+  if (product.sellingPrice < product.originalPrice) {
+    return product.sellingPrice;
+  }
+
+  if (product.discountAmount > 0) {
+    return Math.max(0, product.originalPrice - product.discountAmount);
+  }
+
+  return product.sellingPrice;
+}
+
 export default function PosPage() {
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
@@ -52,6 +78,7 @@ export default function PosPage() {
   const {
     items,
     addProduct,
+    syncProducts,
     setQty,
     increment,
     decrement,
@@ -66,13 +93,24 @@ export default function PosPage() {
   const currentShift = currentShiftQuery.data;
   const hasOpenShift = Boolean(currentShift);
   const searchKeyword = deferredSearch.trim();
-  const productsQuery = usePosProducts({
-    locationId: selectedLocationId,
-    search: searchKeyword || undefined,
-    page: 1,
-    limit: 100,
-    inStockOnly: !searchKeyword,
-  });
+  const posProductFilter = useMemo(
+    () => ({
+      locationId: selectedLocationId,
+      search: searchKeyword || undefined,
+      page: 1,
+      limit: 100,
+      inStockOnly: !searchKeyword,
+      cartItems:
+        items.length > 0
+          ? items.map((item) => ({
+              productId: item.productId,
+              qty: item.qty,
+            }))
+          : undefined,
+    }),
+    [items, searchKeyword, selectedLocationId],
+  );
+  const productsQuery = usePosProducts(posProductFilter);
   const totalAmount = useMemo(
     () =>
       items.reduce(
@@ -82,7 +120,18 @@ export default function PosPage() {
     [items],
   );
   const changeAmount = Math.max(paidAmount - totalAmount, 0);
-  const posProducts = productsQuery.data?.data ?? [];
+  const posProducts = useMemo(
+    () => productsQuery.data?.data ?? [],
+    [productsQuery.data?.data],
+  );
+
+  useEffect(() => {
+    if (posProducts.length === 0) {
+      return;
+    }
+
+    syncProducts(posProducts);
+  }, [posProducts, syncProducts]);
 
   async function handleCheckout() {
     if (!selectedLocationId) {
@@ -114,7 +163,6 @@ export default function PosPage() {
         items: items.map((item) => ({
           productId: item.productId,
           qty: item.qty,
-          sellingPrice: item.sellingPrice,
         })),
       });
 
@@ -174,6 +222,11 @@ export default function PosPage() {
             posProducts.map((product) => {
               const isOutOfStock = product.stockOnHand <= 0;
               const isProductDisabled = isOutOfStock || !hasOpenShift;
+              const hasDiscount =
+                Boolean(product.promotionId) ||
+                product.discountAmount > 0 ||
+                product.sellingPrice < product.originalPrice;
+              const displaySellingPrice = getDisplaySellingPrice(product);
 
               return (
               <Card
@@ -207,9 +260,24 @@ export default function PosPage() {
                   </div>
                 </CardHeader>
                 <CardContent>
-                  <p className="font-medium">
-                    {formatCurrency(product.sellingPrice)}
-                  </p>
+                  <div className="space-y-1">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <p className="font-medium">
+                        {formatCurrency(displaySellingPrice)}
+                      </p>
+                      {hasDiscount ? (
+                        <p className="text-xs text-muted-foreground line-through">
+                          {formatCurrency(product.originalPrice)}
+                        </p>
+                      ) : null}
+                    </div>
+                    {hasDiscount ? (
+                      <Badge className="bg-primary/10 text-foreground" variant="outline">
+                        {product.promotionName ?? "Promo"} · -
+                        {formatCurrency(product.discountAmount)}
+                      </Badge>
+                    ) : null}
+                  </div>
                   <p className="text-xs text-muted-foreground">
                     {product.barcode || product.sku || "No barcode/SKU"}
                   </p>
@@ -244,9 +312,26 @@ export default function PosPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-medium">{item.name}</p>
-                    <p className="text-sm text-muted-foreground">
-                      {formatCurrency(item.sellingPrice)}
-                    </p>
+                    <div className="flex flex-wrap items-center gap-2 text-sm">
+                      <span className="text-muted-foreground">
+                        {formatCurrency(item.sellingPrice)}
+                      </span>
+                      {item.discountAmount > 0 ||
+                      item.promotionId ||
+                      item.sellingPrice < item.originalPrice ? (
+                        <span className="text-xs text-muted-foreground line-through">
+                          {formatCurrency(item.originalPrice)}
+                        </span>
+                      ) : null}
+                    </div>
+                    {item.discountAmount > 0 ||
+                    item.promotionId ||
+                    item.sellingPrice < item.originalPrice ? (
+                      <p className="text-xs text-primary">
+                        {item.promotionName ?? "Promo"} · -
+                        {formatCurrency(item.discountAmount)}
+                      </p>
+                    ) : null}
                     <p className="text-xs text-muted-foreground">
                       Stock: {item.stockOnHand}
                     </p>

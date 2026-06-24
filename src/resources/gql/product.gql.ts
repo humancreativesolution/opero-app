@@ -77,7 +77,11 @@ const GET_POS_PRODUCTS = /* GraphQL */ `
         sku
         barcode
         name
+        originalPrice
         sellingPrice
+        discountAmount
+        promotionId
+        promotionName
         isActive
         stockOnHand
         locationId

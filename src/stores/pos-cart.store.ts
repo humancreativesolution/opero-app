@@ -7,7 +7,11 @@ export type PosCartItem = {
   sku?: string | null;
   barcode?: string | null;
   name: string;
+  originalPrice: number;
   sellingPrice: number;
+  discountAmount: number;
+  promotionId?: string | null;
+  promotionName?: string | null;
   stockOnHand: number;
   qty: number;
 };
@@ -15,12 +19,34 @@ export type PosCartItem = {
 type PosCartState = {
   items: PosCartItem[];
   addProduct: (product: PosProduct) => void;
+  syncProducts: (products: PosProduct[]) => void;
   setQty: (productId: string, qty: number) => void;
   increment: (productId: string) => void;
   decrement: (productId: string) => void;
   remove: (productId: string) => void;
   clear: () => void;
 };
+
+function getDisplaySellingPrice(product: PosProduct) {
+  const hasDiscount =
+    Boolean(product.promotionId) ||
+    product.discountAmount > 0 ||
+    product.sellingPrice < product.originalPrice;
+
+  if (!hasDiscount) {
+    return product.sellingPrice;
+  }
+
+  if (product.sellingPrice < product.originalPrice) {
+    return product.sellingPrice;
+  }
+
+  if (product.discountAmount > 0) {
+    return Math.max(0, product.originalPrice - product.discountAmount);
+  }
+
+  return product.sellingPrice;
+}
 
 export const usePosCartStore = create<PosCartState>((set) => ({
   items: [],
@@ -46,12 +72,58 @@ export const usePosCartStore = create<PosCartState>((set) => ({
             sku: product.sku,
             barcode: product.barcode,
             name: product.name,
-            sellingPrice: product.sellingPrice,
+            originalPrice: product.originalPrice,
+            sellingPrice: getDisplaySellingPrice(product),
+            discountAmount: product.discountAmount,
+            promotionId: product.promotionId,
+            promotionName: product.promotionName,
             stockOnHand: product.stockOnHand,
             qty: 1,
           },
         ],
       };
+    }),
+  syncProducts: (products) =>
+    set((state) => {
+      if (state.items.length === 0) {
+        return state;
+      }
+
+      const productMap = new Map(products.map((product) => [product.id, product]));
+      let hasChanges = false;
+
+      const items = state.items.map((item) => {
+        const product = productMap.get(item.productId);
+
+        if (!product) {
+          return item;
+        }
+
+        const nextItem = {
+          ...item,
+          originalPrice: product.originalPrice,
+          sellingPrice: getDisplaySellingPrice(product),
+          discountAmount: product.discountAmount,
+          promotionId: product.promotionId,
+          promotionName: product.promotionName,
+          stockOnHand: product.stockOnHand,
+        };
+
+        if (
+          nextItem.originalPrice !== item.originalPrice ||
+          nextItem.sellingPrice !== item.sellingPrice ||
+          nextItem.discountAmount !== item.discountAmount ||
+          nextItem.promotionId !== item.promotionId ||
+          nextItem.promotionName !== item.promotionName ||
+          nextItem.stockOnHand !== item.stockOnHand
+        ) {
+          hasChanges = true;
+        }
+
+        return nextItem;
+      });
+
+      return hasChanges ? { items } : state;
     }),
   setQty: (productId, qty) =>
     set((state) => ({

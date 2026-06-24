@@ -353,16 +353,38 @@ export default function SalesPage() {
                       <th className="px-3 py-2 text-left font-medium">Product</th>
                       <th className="px-3 py-2 text-right font-medium">Qty</th>
                       <th className="px-3 py-2 text-right font-medium">Price</th>
+                      <th className="px-3 py-2 text-right font-medium">
+                        Discount
+                      </th>
                       <th className="px-3 py-2 text-right font-medium">Subtotal</th>
                     </tr>
                   </thead>
                   <tbody>
                     {selectedSale.items.map((item) => (
                       <tr className="border-t" key={item.id}>
-                        <td className="px-3 py-2">{item.productName}</td>
+                        <td className="px-3 py-2">
+                          <p>{item.productName}</p>
+                          {item.promotionName ? (
+                            <p className="text-xs text-primary">
+                              {item.promotionName}
+                            </p>
+                          ) : null}
+                        </td>
                         <td className="px-3 py-2 text-right">{item.qty}</td>
                         <td className="px-3 py-2 text-right">
-                          {formatCurrency(item.sellingPrice)}
+                          <div>
+                            <p>{formatCurrency(item.sellingPrice)}</p>
+                            {item.discountAmount > 0 ? (
+                              <p className="text-xs text-muted-foreground line-through">
+                                {formatCurrency(item.originalPrice)}
+                              </p>
+                            ) : null}
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-right">
+                          {item.discountAmount > 0
+                            ? formatCurrency(item.discountAmount * Math.abs(item.qty))
+                            : "-"}
                         </td>
                         <td className="px-3 py-2 text-right font-medium">
                           {formatCurrency(item.qty * item.sellingPrice)}
@@ -375,6 +397,19 @@ export default function SalesPage() {
 
               <div className="flex justify-end text-sm">
                 <div className="w-full max-w-xs space-y-1">
+                  {selectedSale.discounts.length > 0 ? (
+                    <div className="space-y-1 border-b pb-2">
+                      {selectedSale.discounts.map((discount) => (
+                        <div
+                          className="flex justify-between gap-3 text-muted-foreground"
+                          key={discount.id}
+                        >
+                          <span>{discount.name}</span>
+                          <span>-{formatCurrency(discount.amount)}</span>
+                        </div>
+                      ))}
+                    </div>
+                  ) : null}
                   <div className="flex justify-between gap-3">
                     <span>Total</span>
                     <span className="text-lg font-semibold">

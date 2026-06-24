@@ -8,6 +8,7 @@ import {
   ReceiptText,
   Settings,
   ShoppingCart,
+  Tag,
   Truck,
   Users,
 } from "lucide-react";
@@ -18,18 +19,42 @@ import { Separator } from "@/components/ui/separator";
 import { AuthMenu } from "@/features/auth/components/auth-menu.component";
 import { cn } from "@/libs/utils";
 
-const mainMenu = [
-  { label: "Dashboard", path: "/dashboard", icon: Home },
-  { label: "POS", path: "/pos", icon: ShoppingCart },
-  { label: "Sales", path: "/sales", icon: ReceiptText },
-  { label: "Products", path: "/products", icon: Package },
-  { label: "Suppliers", path: "/suppliers", icon: Truck },
-  { label: "Locations", path: "/locations", icon: MapPin },
-  { label: "Purchases", path: "/purchases", icon: PackageSearch },
-  { label: "Inventory", path: "/inventory", icon: Boxes },
-  { label: "Reports", path: "/reports", icon: BarChart3 },
-  { label: "Users", path: "/users", icon: Users },
-  { label: "Settings", path: "/settings", icon: Settings },
+const menuGroups = [
+  {
+    label: "Overview",
+    items: [{ label: "Dashboard", path: "/dashboard", icon: Home }],
+  },
+  {
+    label: "Sales",
+    items: [
+      { label: "POS", path: "/pos", icon: ShoppingCart },
+      { label: "Sales", path: "/sales", icon: ReceiptText },
+      { label: "Promotions", path: "/promotions", icon: Tag },
+    ],
+  },
+  {
+    label: "Inventory",
+    items: [
+      { label: "Products", path: "/products", icon: Package },
+      { label: "Inventory", path: "/inventory", icon: Boxes },
+      { label: "Locations", path: "/locations", icon: MapPin },
+    ],
+  },
+  {
+    label: "Purchasing",
+    items: [
+      { label: "Suppliers", path: "/suppliers", icon: Truck },
+      { label: "Purchases", path: "/purchases", icon: PackageSearch },
+    ],
+  },
+  {
+    label: "Management",
+    items: [
+      { label: "Reports", path: "/reports", icon: BarChart3 },
+      { label: "Users", path: "/users", icon: Users },
+      { label: "Settings", path: "/settings", icon: Settings },
+    ],
+  },
 ];
 
 function getTenantHost() {
@@ -58,21 +83,28 @@ export function AppLayout() {
 
         <Separator />
 
-        <nav className="flex flex-1 flex-col gap-1 p-3">
-          {mainMenu.map((item) => (
-            <NavLink
-              className={({ isActive }) =>
-                cn(
-                  "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                  isActive && "bg-primary/10 text-foreground",
-                )
-              }
-              key={item.path}
-              to={item.path}
-            >
-              <item.icon className="size-4" />
-              {item.label}
-            </NavLink>
+        <nav className="flex flex-1 flex-col gap-4 overflow-y-auto p-3">
+          {menuGroups.map((group) => (
+            <div className="space-y-1" key={group.label}>
+              <p className="px-3 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                {group.label}
+              </p>
+              {group.items.map((item) => (
+                <NavLink
+                  className={({ isActive }) =>
+                    cn(
+                      "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                      isActive && "bg-primary/10 text-foreground",
+                    )
+                  }
+                  key={item.path}
+                  to={item.path}
+                >
+                  <item.icon className="size-4" />
+                  {item.label}
+                </NavLink>
+              ))}
+            </div>
           ))}
         </nav>
       </aside>

@@ -25,6 +25,13 @@ const GET_SALES = /* GraphQL */ `
         totalAmount
         paidAmount
         changeAmount
+        discounts {
+          id
+          promotionId
+          name
+          amount
+          createdAt
+        }
         payments {
           id
           method
@@ -41,7 +48,11 @@ const GET_SALES = /* GraphQL */ `
           productId
           productName
           qty
+          originalPrice
           sellingPrice
+          discountAmount
+          promotionId
+          promotionName
           costSnapshot
           profit
         }
@@ -70,6 +81,13 @@ const CREATE_SALE = /* GraphQL */ `
       totalAmount
       paidAmount
       changeAmount
+      discounts {
+        id
+        promotionId
+        name
+        amount
+        createdAt
+      }
       payments {
         id
         method
@@ -86,7 +104,11 @@ const CREATE_SALE = /* GraphQL */ `
         productId
         productName
         qty
+        originalPrice
         sellingPrice
+        discountAmount
+        promotionId
+        promotionName
         costSnapshot
         profit
       }
@@ -108,6 +130,13 @@ const CREATE_SALE_RETURN = /* GraphQL */ `
       totalAmount
       paidAmount
       changeAmount
+      discounts {
+        id
+        promotionId
+        name
+        amount
+        createdAt
+      }
       payments {
         id
         method
@@ -124,7 +153,11 @@ const CREATE_SALE_RETURN = /* GraphQL */ `
         productId
         productName
         qty
+        originalPrice
         sellingPrice
+        discountAmount
+        promotionId
+        promotionName
         costSnapshot
         profit
       }

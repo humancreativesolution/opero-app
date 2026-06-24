@@ -25,6 +25,13 @@ export type AuthResponse = {
   user: UserResponse;
 };
 
+export type CashSummary = {
+  __typename?: 'CashSummary';
+  byMethod: Array<PaymentMethodSummary>;
+  cashTotal: Scalars['Float']['output'];
+  nonCashTotal: Scalars['Float']['output'];
+};
+
 export type CashierShiftEntity = {
   __typename?: 'CashierShiftEntity';
   closedAt?: Maybe<Scalars['DateTime']['output']>;
@@ -74,6 +81,24 @@ export type CreateProductInput = {
   name: Scalars['String']['input'];
   sellingPrice: Scalars['Float']['input'];
   sku?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type CreatePromotionInput = {
+  applyToAllProducts?: Scalars['Boolean']['input'];
+  channel?: PromotionChannel;
+  defaultLocationId?: InputMaybe<Scalars['ID']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  discountValue: Scalars['Float']['input'];
+  discountValueType: DiscountValueType;
+  endsAt?: InputMaybe<Scalars['String']['input']>;
+  locationIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  minQty?: InputMaybe<Scalars['Int']['input']>;
+  minSubtotal?: InputMaybe<Scalars['Float']['input']>;
+  name: Scalars['String']['input'];
+  productIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  startsAt: Scalars['String']['input'];
+  status?: PromotionStatus;
+  type: PromotionType;
 };
 
 export type CreatePurchaseInput = {
@@ -137,6 +162,26 @@ export type CreateUserInput = {
   role?: UserRole;
 };
 
+export type DashboardSummary = {
+  __typename?: 'DashboardSummary';
+  cash: CashSummary;
+  inventory: InventorySummary;
+  purchases: PurchaseSummary;
+  sales: SalesSummary;
+};
+
+export type DashboardSummaryFilterInput = {
+  dateFrom?: InputMaybe<Scalars['String']['input']>;
+  dateTo?: InputMaybe<Scalars['String']['input']>;
+  locationId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export const DiscountValueType = {
+  Amount: 'AMOUNT',
+  Percent: 'PERCENT'
+} as const;
+
+export type DiscountValueType = typeof DiscountValueType[keyof typeof DiscountValueType];
 export type InitialStockItemInput = {
   productId: Scalars['ID']['input'];
   qty: Scalars['Int']['input'];
@@ -156,6 +201,12 @@ export type InventoryBalance = {
 export type InventoryFilterInput = {
   locationId?: InputMaybe<Scalars['ID']['input']>;
   productId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type InventorySummary = {
+  __typename?: 'InventorySummary';
+  lowStockCount: Scalars['Int']['output'];
+  outOfStockCount: Scalars['Int']['output'];
 };
 
 export type InventoryTransactionEntity = {
@@ -178,7 +229,8 @@ export type InventoryTransactionEntity = {
 export const InventoryTransactionType = {
   Adjustment: 'ADJUSTMENT',
   Purchase: 'PURCHASE',
-  Sale: 'SALE'
+  Sale: 'SALE',
+  SaleReturn: 'SALE_RETURN'
 } as const;
 
 export type InventoryTransactionType = typeof InventoryTransactionType[keyof typeof InventoryTransactionType];
@@ -216,6 +268,7 @@ export type Mutation = {
   closeCashierShift: CashierShiftEntity;
   createLocation: LocationEntity;
   createProduct: ProductEntity;
+  createPromotion: PromotionEntity;
   createPurchase: PurchaseEntity;
   createSale: SaleEntity;
   createSaleReturn: SaleEntity;
@@ -230,6 +283,7 @@ export type Mutation = {
   register: AuthResponse;
   removeLocation: LocationEntity;
   removeProduct: ProductEntity;
+  removePromotion: PromotionEntity;
   removeSupplier: SupplierEntity;
   removeTenant: TenantEntity;
   removeUser: UserEntity;
@@ -237,6 +291,7 @@ export type Mutation = {
   transferStock: Array<InventoryTransactionEntity>;
   updateLocation: LocationEntity;
   updateProduct: ProductEntity;
+  updatePromotion: PromotionEntity;
   updatePurchase: PurchaseEntity;
   updatePurchaseStatus: PurchaseEntity;
   updateSupplier: SupplierEntity;
@@ -262,6 +317,11 @@ export type MutationCreateLocationArgs = {
 
 export type MutationCreateProductArgs = {
   createProductInput: CreateProductInput;
+};
+
+
+export type MutationCreatePromotionArgs = {
+  createPromotionInput: CreatePromotionInput;
 };
 
 
@@ -335,6 +395,11 @@ export type MutationRemoveProductArgs = {
 };
 
 
+export type MutationRemovePromotionArgs = {
+  id: Scalars['String']['input'];
+};
+
+
 export type MutationRemoveSupplierArgs = {
   id: Scalars['String']['input'];
 };
@@ -367,6 +432,11 @@ export type MutationUpdateLocationArgs = {
 
 export type MutationUpdateProductArgs = {
   updateProductInput: UpdateProductInput;
+};
+
+
+export type MutationUpdatePromotionArgs = {
+  updatePromotionInput: UpdatePromotionInput;
 };
 
 
@@ -424,6 +494,12 @@ export type PaginatedProducts = {
   meta: PaginationMeta;
 };
 
+export type PaginatedPromotions = {
+  __typename?: 'PaginatedPromotions';
+  data: Array<PromotionEntity>;
+  meta: PaginationMeta;
+};
+
 export type PaginatedSales = {
   __typename?: 'PaginatedSales';
   data: Array<SaleEntity>;
@@ -467,20 +543,37 @@ export const PaymentMethod = {
 } as const;
 
 export type PaymentMethod = typeof PaymentMethod[keyof typeof PaymentMethod];
+export type PaymentMethodSummary = {
+  __typename?: 'PaymentMethodSummary';
+  amount: Scalars['Float']['output'];
+  count: Scalars['Int']['output'];
+  method: PaymentMethod;
+};
+
+export type PosCartItemInput = {
+  productId: Scalars['ID']['input'];
+  qty: Scalars['Int']['input'];
+};
+
 export type PosProduct = {
   __typename?: 'PosProduct';
   barcode?: Maybe<Scalars['String']['output']>;
+  discountAmount: Scalars['Float']['output'];
   id: Scalars['ID']['output'];
   isActive: Scalars['Boolean']['output'];
   locationId: Scalars['ID']['output'];
   locationName: Scalars['String']['output'];
   name: Scalars['String']['output'];
+  originalPrice: Scalars['Float']['output'];
+  promotionId?: Maybe<Scalars['ID']['output']>;
+  promotionName?: Maybe<Scalars['String']['output']>;
   sellingPrice: Scalars['Float']['output'];
   sku?: Maybe<Scalars['String']['output']>;
   stockOnHand: Scalars['Int']['output'];
 };
 
 export type PosProductFilterInput = {
+  cartItems?: InputMaybe<Array<PosCartItemInput>>;
   inStockOnly?: Scalars['Boolean']['input'];
   limit?: Scalars['Int']['input'];
   locationId: Scalars['ID']['input'];
@@ -502,6 +595,56 @@ export type ProductEntity = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
+export const PromotionChannel = {
+  All: 'ALL',
+  Pos: 'POS',
+  SalesOrder: 'SALES_ORDER'
+} as const;
+
+export type PromotionChannel = typeof PromotionChannel[keyof typeof PromotionChannel];
+export type PromotionEntity = {
+  __typename?: 'PromotionEntity';
+  applyToAllProducts: Scalars['Boolean']['output'];
+  channel: PromotionChannel;
+  createdAt: Scalars['DateTime']['output'];
+  defaultLocationId?: Maybe<Scalars['ID']['output']>;
+  description?: Maybe<Scalars['String']['output']>;
+  discountValue: Scalars['Float']['output'];
+  discountValueType: DiscountValueType;
+  endsAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  locationIds: Array<Scalars['ID']['output']>;
+  minQty?: Maybe<Scalars['Int']['output']>;
+  minSubtotal?: Maybe<Scalars['Float']['output']>;
+  name: Scalars['String']['output'];
+  productIds: Array<Scalars['ID']['output']>;
+  startsAt: Scalars['DateTime']['output'];
+  status: PromotionStatus;
+  type: PromotionType;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type PromotionFilterInput = {
+  activeAt?: InputMaybe<Scalars['String']['input']>;
+  channel?: InputMaybe<PromotionChannel>;
+  search?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<PromotionStatus>;
+  type?: InputMaybe<PromotionType>;
+};
+
+export const PromotionStatus = {
+  Active: 'ACTIVE',
+  Inactive: 'INACTIVE'
+} as const;
+
+export type PromotionStatus = typeof PromotionStatus[keyof typeof PromotionStatus];
+export const PromotionType = {
+  MinQtyDiscount: 'MIN_QTY_DISCOUNT',
+  MinTransactionDiscount: 'MIN_TRANSACTION_DISCOUNT',
+  ProductDiscount: 'PRODUCT_DISCOUNT'
+} as const;
+
+export type PromotionType = typeof PromotionType[keyof typeof PromotionType];
 export type PurchaseEntity = {
   __typename?: 'PurchaseEntity';
   createdAt: Scalars['DateTime']['output'];
@@ -543,11 +686,18 @@ export const PurchaseStatus = {
 } as const;
 
 export type PurchaseStatus = typeof PurchaseStatus[keyof typeof PurchaseStatus];
+export type PurchaseSummary = {
+  __typename?: 'PurchaseSummary';
+  partiallyReceivedPurchaseCount: Scalars['Int']['output'];
+  pendingPurchaseCount: Scalars['Int']['output'];
+};
+
 export type Query = {
   __typename?: 'Query';
   cashierShift: CashierShiftEntity;
   cashierShifts: PaginatedCashierShifts;
   currentCashierShift?: Maybe<CashierShiftEntity>;
+  dashboardSummary: DashboardSummary;
   health: Scalars['String']['output'];
   inventoryBalances: Array<InventoryBalance>;
   inventoryTransactions: Array<InventoryTransactionEntity>;
@@ -559,6 +709,9 @@ export type Query = {
   product?: Maybe<ProductEntity>;
   products: PaginatedProducts;
   productsByTenant: Array<ProductEntity>;
+  promotion?: Maybe<PromotionEntity>;
+  promotions: PaginatedPromotions;
+  promotionsByTenant: Array<PromotionEntity>;
   purchase: PurchaseEntity;
   purchases: Array<PurchaseEntity>;
   sale?: Maybe<SaleEntity>;
@@ -588,6 +741,11 @@ export type QueryCashierShiftsArgs = {
 
 export type QueryCurrentCashierShiftArgs = {
   locationId: Scalars['String']['input'];
+};
+
+
+export type QueryDashboardSummaryArgs = {
+  filter?: InputMaybe<DashboardSummaryFilterInput>;
 };
 
 
@@ -631,6 +789,23 @@ export type QueryProductArgs = {
 export type QueryProductsArgs = {
   limit?: Scalars['Int']['input'];
   page?: Scalars['Int']['input'];
+};
+
+
+export type QueryPromotionArgs = {
+  id: Scalars['String']['input'];
+};
+
+
+export type QueryPromotionsArgs = {
+  filter?: InputMaybe<PromotionFilterInput>;
+  limit?: Scalars['Int']['input'];
+  page?: Scalars['Int']['input'];
+};
+
+
+export type QueryPromotionsByTenantArgs = {
+  filter?: InputMaybe<PromotionFilterInput>;
 };
 
 
@@ -709,11 +884,21 @@ export type RegisterInput = {
   subdomain: Scalars['String']['input'];
 };
 
+export type SaleDiscountEntity = {
+  __typename?: 'SaleDiscountEntity';
+  amount: Scalars['Float']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  promotionId?: Maybe<Scalars['ID']['output']>;
+};
+
 export type SaleEntity = {
   __typename?: 'SaleEntity';
   cashierShiftId?: Maybe<Scalars['ID']['output']>;
   changeAmount: Scalars['Float']['output'];
   createdAt: Scalars['DateTime']['output'];
+  discounts: Array<SaleDiscountEntity>;
   id: Scalars['ID']['output'];
   invoiceNo: Scalars['String']['output'];
   items: Array<SaleItemEntity>;
@@ -737,10 +922,14 @@ export type SaleFilterInput = {
 export type SaleItemEntity = {
   __typename?: 'SaleItemEntity';
   costSnapshot: Scalars['Float']['output'];
+  discountAmount: Scalars['Float']['output'];
   id: Scalars['ID']['output'];
+  originalPrice: Scalars['Float']['output'];
   productId: Scalars['ID']['output'];
   productName: Scalars['String']['output'];
   profit: Scalars['Float']['output'];
+  promotionId?: Maybe<Scalars['ID']['output']>;
+  promotionName?: Maybe<Scalars['String']['output']>;
   qty: Scalars['Int']['output'];
   sellingPrice: Scalars['Float']['output'];
 };
@@ -796,6 +985,17 @@ export const SaleType = {
 } as const;
 
 export type SaleType = typeof SaleType[keyof typeof SaleType];
+export type SalesSummary = {
+  __typename?: 'SalesSummary';
+  grossProfit: Scalars['Float']['output'];
+  grossSales: Scalars['Float']['output'];
+  netSales: Scalars['Float']['output'];
+  returnAmount: Scalars['Float']['output'];
+  returnCount: Scalars['Int']['output'];
+  saleCount: Scalars['Int']['output'];
+  transactionCount: Scalars['Int']['output'];
+};
+
 export type SetInitialStockInput = {
   items: Array<InitialStockItemInput>;
   locationId: Scalars['ID']['input'];
@@ -854,6 +1054,25 @@ export type UpdateProductInput = {
   name?: InputMaybe<Scalars['String']['input']>;
   sellingPrice?: InputMaybe<Scalars['Float']['input']>;
   sku?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UpdatePromotionInput = {
+  applyToAllProducts?: InputMaybe<Scalars['Boolean']['input']>;
+  channel?: InputMaybe<PromotionChannel>;
+  defaultLocationId?: InputMaybe<Scalars['ID']['input']>;
+  description?: InputMaybe<Scalars['String']['input']>;
+  discountValue?: InputMaybe<Scalars['Float']['input']>;
+  discountValueType?: InputMaybe<DiscountValueType>;
+  endsAt?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  locationIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  minQty?: InputMaybe<Scalars['Int']['input']>;
+  minSubtotal?: InputMaybe<Scalars['Float']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+  productIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  startsAt?: InputMaybe<Scalars['String']['input']>;
+  status?: InputMaybe<PromotionStatus>;
+  type?: InputMaybe<PromotionType>;
 };
 
 export type UpdatePurchaseInput = {
