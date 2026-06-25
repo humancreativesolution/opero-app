@@ -8,7 +8,7 @@ import {
   ShoppingCart,
   Trash2,
 } from "lucide-react";
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useMemo, useState } from "react";
 import { toast } from "sonner";
 
 import { Badge } from "@/components/ui/badge";
@@ -20,10 +20,11 @@ import type { PaymentMethod } from "@/graphql/generated";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ErrorHelper } from "@/libs/error";
+import { useDebouncedValue } from "@/hooks/use-debounced-value.hook";
 import { useCurrentCashierShift } from "@/resources/gql/cashier-shift.gql";
 import { useLocations } from "@/resources/gql/location.gql";
 import { usePosProducts } from "@/resources/gql/product.gql";
-import { useCreateSale } from "@/resources/gql/sale.gql";
+import { useCreateSale, usePreviewSalePricing } from "@/resources/gql/sale.gql";
 import { usePosCartStore } from "@/stores/pos-cart.store";
 
 const currencyFormatter = new Intl.NumberFormat("id-ID", {
@@ -34,32 +35,6 @@ const currencyFormatter = new Intl.NumberFormat("id-ID", {
 
 function formatCurrency(value: number) {
   return currencyFormatter.format(value);
-}
-
-function getDisplaySellingPrice(product: {
-  originalPrice: number;
-  sellingPrice: number;
-  discountAmount: number;
-  promotionId?: string | null;
-}) {
-  const hasDiscount =
-    Boolean(product.promotionId) ||
-    product.discountAmount > 0 ||
-    product.sellingPrice < product.originalPrice;
-
-  if (!hasDiscount) {
-    return product.sellingPrice;
-  }
-
-  if (product.sellingPrice < product.originalPrice) {
-    return product.sellingPrice;
-  }
-
-  if (product.discountAmount > 0) {
-    return Math.max(0, product.originalPrice - product.discountAmount);
-  }
-
-  return product.sellingPrice;
 }
 
 export default function PosPage() {
@@ -78,7 +53,6 @@ export default function PosPage() {
   const {
     items,
     addProduct,
-    syncProducts,
     setQty,
     increment,
     decrement,
@@ -100,38 +74,48 @@ export default function PosPage() {
       page: 1,
       limit: 100,
       inStockOnly: !searchKeyword,
-      cartItems:
-        items.length > 0
-          ? items.map((item) => ({
-              productId: item.productId,
-              qty: item.qty,
-            }))
-          : undefined,
     }),
-    [items, searchKeyword, selectedLocationId],
+    [searchKeyword, selectedLocationId],
   );
   const productsQuery = usePosProducts(posProductFilter);
+  const previewPricingInput = useMemo(
+    () => ({
+      locationId: selectedLocationId,
+      items: items.map((item) => ({
+        productId: item.productId,
+        qty: item.qty,
+      })),
+    }),
+    [items, selectedLocationId],
+  );
+  const debouncedPreviewPricingInput = useDebouncedValue(previewPricingInput, 250);
+  const previewPricingQuery = usePreviewSalePricing(debouncedPreviewPricingInput);
+  const previewPricing = previewPricingQuery.data;
+  const previewItemMap = useMemo(
+    () =>
+      new Map(
+        (previewPricing?.items ?? []).map((item) => [item.productId, item]),
+      ),
+    [previewPricing?.items],
+  );
   const totalAmount = useMemo(
     () =>
-      items.reduce(
-        (total, item) => total + item.qty * item.sellingPrice,
-        0,
-      ),
-    [items],
+      previewPricing?.totalAmount ??
+      items.reduce((total, item) => total + item.qty * item.sellingPrice, 0),
+    [items, previewPricing?.totalAmount],
   );
   const changeAmount = Math.max(paidAmount - totalAmount, 0);
   const posProducts = useMemo(
     () => productsQuery.data?.data ?? [],
     [productsQuery.data?.data],
   );
-
-  useEffect(() => {
-    if (posProducts.length === 0) {
-      return;
+  const totalDiscount = useMemo(() => {
+    if (!previewPricing) {
+      return 0;
     }
 
-    syncProducts(posProducts);
-  }, [posProducts, syncProducts]);
+    return Math.max(0, previewPricing.subtotal - previewPricing.totalAmount);
+  }, [previewPricing]);
 
   async function handleCheckout() {
     if (!selectedLocationId) {
@@ -222,11 +206,6 @@ export default function PosPage() {
             posProducts.map((product) => {
               const isOutOfStock = product.stockOnHand <= 0;
               const isProductDisabled = isOutOfStock || !hasOpenShift;
-              const hasDiscount =
-                Boolean(product.promotionId) ||
-                product.discountAmount > 0 ||
-                product.sellingPrice < product.originalPrice;
-              const displaySellingPrice = getDisplaySellingPrice(product);
 
               return (
               <Card
@@ -261,22 +240,9 @@ export default function PosPage() {
                 </CardHeader>
                 <CardContent>
                   <div className="space-y-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <p className="font-medium">
-                        {formatCurrency(displaySellingPrice)}
-                      </p>
-                      {hasDiscount ? (
-                        <p className="text-xs text-muted-foreground line-through">
-                          {formatCurrency(product.originalPrice)}
-                        </p>
-                      ) : null}
-                    </div>
-                    {hasDiscount ? (
-                      <Badge className="bg-primary/10 text-foreground" variant="outline">
-                        {product.promotionName ?? "Promo"} · -
-                        {formatCurrency(product.discountAmount)}
-                      </Badge>
-                    ) : null}
+                    <p className="font-medium">
+                      {formatCurrency(product.sellingPrice)}
+                    </p>
                   </div>
                   <p className="text-xs text-muted-foreground">
                     {product.barcode || product.sku || "No barcode/SKU"}
@@ -309,32 +275,59 @@ export default function PosPage() {
           ) : (
             items.map((item) => (
               <div className="rounded-lg border p-3" key={item.productId}>
+                {(() => {
+                  const previewItem = previewItemMap.get(item.productId);
+                  const displaySellingPrice =
+                    previewItem?.sellingPrice ?? item.sellingPrice;
+                  const originalPrice =
+                    previewItem?.originalPrice ?? item.originalPrice;
+                  const discountAmount =
+                    previewItem?.discountAmount ?? item.discountAmount;
+                  const promotionId =
+                    previewItem?.promotionId ?? item.promotionId;
+                  const promotionName =
+                    previewItem?.promotionName ?? item.promotionName;
+                  const lineSubtotal =
+                    previewItem?.lineSubtotal ??
+                    item.qty * displaySellingPrice;
+                  const isStockSufficient =
+                    previewItem?.isStockSufficient ?? true;
+                  const availableStock =
+                    previewItem?.availableStock ?? item.stockOnHand;
+                  const hasDiscount =
+                    Boolean(promotionId) ||
+                    discountAmount > 0 ||
+                    displaySellingPrice < originalPrice;
+
+                  return (
+                    <>
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-medium">{item.name}</p>
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <span className="text-muted-foreground">
-                        {formatCurrency(item.sellingPrice)}
+                        {formatCurrency(displaySellingPrice)}
                       </span>
-                      {item.discountAmount > 0 ||
-                      item.promotionId ||
-                      item.sellingPrice < item.originalPrice ? (
+                      {hasDiscount ? (
                         <span className="text-xs text-muted-foreground line-through">
-                          {formatCurrency(item.originalPrice)}
+                          {formatCurrency(originalPrice)}
                         </span>
                       ) : null}
                     </div>
-                    {item.discountAmount > 0 ||
-                    item.promotionId ||
-                    item.sellingPrice < item.originalPrice ? (
+                    {hasDiscount ? (
                       <p className="text-xs text-primary">
-                        {item.promotionName ?? "Promo"} · -
-                        {formatCurrency(item.discountAmount)}
+                        {promotionName ?? "Promo"} · -
+                        {formatCurrency(discountAmount)}
                       </p>
                     ) : null}
-                    <p className="text-xs text-muted-foreground">
-                      Stock: {item.stockOnHand}
-                    </p>
+                    <div className="space-y-0.5 text-xs text-muted-foreground">
+                      <p>Stock: {availableStock}</p>
+                      {!isStockSufficient ? (
+                        <p className="text-destructive">
+                          Requested qty exceeds available stock.
+                        </p>
+                      ) : null}
+                    </div>
                   </div>
                   <Button
                     onClick={() => remove(item.productId)}
@@ -371,9 +364,12 @@ export default function PosPage() {
                     </Button>
                   </div>
                   <p className="font-semibold">
-                    {formatCurrency(item.qty * item.sellingPrice)}
+                    {formatCurrency(lineSubtotal)}
                   </p>
                 </div>
+                    </>
+                  );
+                })()}
               </div>
             ))
           )}
@@ -498,6 +494,20 @@ export default function PosPage() {
           </label>
 
           <div className="space-y-1 text-sm">
+            {previewPricing ? (
+              <>
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Subtotal</span>
+                  <span>{formatCurrency(previewPricing.subtotal)}</span>
+                </div>
+                {totalDiscount > 0 ? (
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span>Discount</span>
+                    <span>-{formatCurrency(totalDiscount)}</span>
+                  </div>
+                ) : null}
+              </>
+            ) : null}
             <div className="flex items-center justify-between">
               <span>Total</span>
               <span className="text-lg font-semibold">
@@ -517,6 +527,8 @@ export default function PosPage() {
               items.length === 0 ||
               !selectedLocationId ||
               !hasOpenShift ||
+              previewPricingQuery.isLoading ||
+              previewPricing?.isStockSufficient === false ||
               paidAmount < totalAmount
             }
             onClick={handleCheckout}

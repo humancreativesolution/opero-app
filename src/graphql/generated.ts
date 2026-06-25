@@ -550,11 +550,6 @@ export type PaymentMethodSummary = {
   method: PaymentMethod;
 };
 
-export type PosCartItemInput = {
-  productId: Scalars['ID']['input'];
-  qty: Scalars['Int']['input'];
-};
-
 export type PosProduct = {
   __typename?: 'PosProduct';
   barcode?: Maybe<Scalars['String']['output']>;
@@ -573,12 +568,16 @@ export type PosProduct = {
 };
 
 export type PosProductFilterInput = {
-  cartItems?: InputMaybe<Array<PosCartItemInput>>;
   inStockOnly?: Scalars['Boolean']['input'];
   limit?: Scalars['Int']['input'];
   locationId: Scalars['ID']['input'];
   page?: Scalars['Int']['input'];
   search?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type PreviewSalePricingInput = {
+  items: Array<SaleItemInput>;
+  locationId: Scalars['ID']['input'];
 };
 
 export type ProductEntity = {
@@ -706,6 +705,7 @@ export type Query = {
   locationsByTenant: Array<LocationEntity>;
   me: UserResponse;
   posProducts: PaginatedPosProducts;
+  previewSalePricing: SalePricingPreviewEntity;
   product?: Maybe<ProductEntity>;
   products: PaginatedProducts;
   productsByTenant: Array<ProductEntity>;
@@ -778,6 +778,11 @@ export type QueryLocationsByTenantArgs = {
 
 export type QueryPosProductsArgs = {
   filter: PosProductFilterInput;
+};
+
+
+export type QueryPreviewSalePricingArgs = {
+  previewSalePricingInput: PreviewSalePricingInput;
 };
 
 
@@ -957,6 +962,40 @@ export type SalePaymentInput = {
   notes?: InputMaybe<Scalars['String']['input']>;
   provider?: InputMaybe<Scalars['String']['input']>;
   referenceNo?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type SalePricingPreviewDiscountEntity = {
+  __typename?: 'SalePricingPreviewDiscountEntity';
+  amount: Scalars['Float']['output'];
+  name: Scalars['String']['output'];
+  promotionId?: Maybe<Scalars['ID']['output']>;
+};
+
+export type SalePricingPreviewEntity = {
+  __typename?: 'SalePricingPreviewEntity';
+  discounts: Array<SalePricingPreviewDiscountEntity>;
+  isStockSufficient: Scalars['Boolean']['output'];
+  items: Array<SalePricingPreviewItemEntity>;
+  locationId: Scalars['ID']['output'];
+  locationName: Scalars['String']['output'];
+  subtotal: Scalars['Float']['output'];
+  totalAmount: Scalars['Float']['output'];
+  transactionDiscount: Scalars['Float']['output'];
+};
+
+export type SalePricingPreviewItemEntity = {
+  __typename?: 'SalePricingPreviewItemEntity';
+  availableStock: Scalars['Int']['output'];
+  discountAmount: Scalars['Float']['output'];
+  isStockSufficient: Scalars['Boolean']['output'];
+  lineSubtotal: Scalars['Float']['output'];
+  originalPrice: Scalars['Float']['output'];
+  productId: Scalars['ID']['output'];
+  productName: Scalars['String']['output'];
+  promotionId?: Maybe<Scalars['ID']['output']>;
+  promotionName?: Maybe<Scalars['String']['output']>;
+  qty: Scalars['Int']['output'];
+  sellingPrice: Scalars['Float']['output'];
 };
 
 export type SaleRefundPaymentInput = {

@@ -4,8 +4,10 @@ import type {
   CreateSaleInput,
   CreateSaleReturnInput,
   PaginatedSales,
+  PreviewSalePricingInput,
   SaleEntity,
   SaleFilterInput,
+  SalePricingPreviewEntity,
 } from "@/graphql/generated";
 import { ErrorHelper } from "@/libs/error";
 import { gqlClient } from "@/libs/graphql";
@@ -64,6 +66,38 @@ const GET_SALES = /* GraphQL */ `
         totalPages
         hasNextPage
         hasPrevPage
+      }
+    }
+  }
+`;
+
+const PREVIEW_SALE_PRICING = /* GraphQL */ `
+  query PreviewSalePricing($previewSalePricingInput: PreviewSalePricingInput!) {
+    previewSalePricing(previewSalePricingInput: $previewSalePricingInput) {
+      locationId
+      locationName
+      isStockSufficient
+      subtotal
+      transactionDiscount
+      totalAmount
+      discounts {
+        id
+        promotionId
+        name
+        amount
+      }
+      items {
+        productId
+        productName
+        qty
+        originalPrice
+        sellingPrice
+        discountAmount
+        promotionId
+        promotionName
+        lineSubtotal
+        availableStock
+        isStockSufficient
       }
     }
   }
@@ -189,6 +223,24 @@ export function useSales(params: SaleListParams = {}) {
     queryFn: () =>
       gqlClient.request<{ sales: PaginatedSales }>(GET_SALES, queryParams),
     select: (data) => data.sales,
+  });
+}
+
+export function usePreviewSalePricing(
+  previewSalePricingInput: PreviewSalePricingInput,
+) {
+  return useQuery({
+    enabled:
+      Boolean(previewSalePricingInput.locationId) &&
+      previewSalePricingInput.items.length > 0,
+    placeholderData: (previousData) => previousData,
+    queryKey: [...saleKeys.all, "preview-pricing", previewSalePricingInput] as const,
+    queryFn: () =>
+      gqlClient.request<{ previewSalePricing: SalePricingPreviewEntity }>(
+        PREVIEW_SALE_PRICING,
+        { previewSalePricingInput },
+      ),
+    select: (data) => data.previewSalePricing,
   });
 }
 
