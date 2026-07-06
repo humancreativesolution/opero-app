@@ -50,6 +50,12 @@ export const PERMISSIONS = {
     update: "locations.update",
     delete: "locations.delete",
   },
+  units: {
+    read: "units.read",
+    create: "units.create",
+    update: "units.update",
+    delete: "units.delete",
+  },
   users: {
     read: "users.read",
     create: "users.create",

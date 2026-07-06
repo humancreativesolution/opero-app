@@ -32,6 +32,7 @@ import {
   useCreateProduct,
   useUpdateProduct,
 } from "@/resources/gql/product.gql";
+import { useUnitsByTenant } from "@/resources/gql/unit.gql";
 
 type ProductFormSheetProps = {
   open: boolean;
@@ -44,6 +45,7 @@ const defaultValues: ProductFormValues = {
   sku: "",
   barcode: "",
   name: "",
+  unitId: "",
   sellingPrice: 0,
   lastCostPrice: 0,
   isActive: true,
@@ -62,8 +64,13 @@ export function ProductFormSheet({
 }: ProductFormSheetProps) {
   const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
+  const unitsQuery = useUnitsByTenant();
   const isEdit = Boolean(product);
   const isSubmitting = createProduct.isPending || updateProduct.isPending;
+  const units = unitsQuery.data ?? [];
+  const selectableUnits = units.filter(
+    (unit) => unit.isActive || unit.id === product?.unitId,
+  );
   const form = useForm<ProductFormValues>({
     resolver: zodResolver(productFormSchema),
     defaultValues,
@@ -81,6 +88,7 @@ export function ProductFormSheet({
             barcode: product.barcode ?? "",
             type: product.type,
             name: product.name,
+            unitId: product.unitId,
             sellingPrice: product.sellingPrice,
             lastCostPrice: product.lastCostPrice,
             isActive: product.isActive,
@@ -98,6 +106,7 @@ export function ProductFormSheet({
           sku: optionalString(values.sku),
           barcode: optionalString(values.barcode),
           name: values.name.trim(),
+          unitId: values.unitId,
           sellingPrice: values.sellingPrice,
           lastCostPrice: values.lastCostPrice,
           isActive: values.isActive,
@@ -109,6 +118,7 @@ export function ProductFormSheet({
           sku: optionalString(values.sku),
           barcode: optionalString(values.barcode),
           name: values.name.trim(),
+          unitId: values.unitId,
           sellingPrice: values.sellingPrice,
           lastCostPrice: values.lastCostPrice,
           isActive: values.isActive,
@@ -199,6 +209,35 @@ export function ProductFormSheet({
                   <FormLabel>Product name</FormLabel>
                   <FormControl>
                     <Input placeholder="Example: Kopi Susu" {...field} />
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
+            <FormField
+              control={form.control}
+              name="unitId"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Unit</FormLabel>
+                  <FormControl>
+                    <select
+                      className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
+                      disabled={unitsQuery.isLoading}
+                      onChange={field.onChange}
+                      value={field.value}
+                    >
+                      <option value="">
+                        {unitsQuery.isLoading ? "Loading units..." : "Select unit"}
+                      </option>
+                      {selectableUnits.map((unit) => (
+                        <option key={unit.id} value={unit.id}>
+                          {unit.name} ({unit.code})
+                          {unit.isActive ? "" : " - inactive"}
+                        </option>
+                      ))}
+                    </select>
                   </FormControl>
                   <FormMessage />
                 </FormItem>

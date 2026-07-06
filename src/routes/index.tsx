@@ -13,6 +13,7 @@ import ReportsPage from "@pages/reports";
 import SalesPage from "@pages/sales";
 import SettingsPage from "@pages/settings";
 import SuppliersPage from "@pages/suppliers";
+import UnitsPage from "@pages/units";
 import UsersPage from "@pages/users";
 
 import { PERMISSIONS } from "@/components/rbac/permissions";
@@ -39,6 +40,9 @@ const SuppliersRoute = withPermission(SuppliersPage, {
 });
 const LocationsRoute = withPermission(LocationsPage, {
   anyOf: [PERMISSIONS.locations.read],
+});
+const UnitsRoute = withPermission(UnitsPage, {
+  anyOf: [PERMISSIONS.units.read],
 });
 const PurchasesRoute = withPermission(PurchasesPage, {
   anyOf: [PERMISSIONS.purchases.read],
@@ -78,6 +82,7 @@ const routes = [
       { path: "sales", element: <SalesRoute /> },
       { path: "suppliers", element: <SuppliersRoute /> },
       { path: "locations", element: <LocationsRoute /> },
+      { path: "units", element: <UnitsRoute /> },
       { path: "purchases", element: <PurchasesRoute /> },
       { path: "inventory", element: <InventoryRoute /> },
       { path: "reports", element: <ReportsRoute /> },

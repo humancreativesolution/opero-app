@@ -12,6 +12,9 @@ export type PosCartItem = {
   discountAmount: number;
   promotionId?: string | null;
   promotionName?: string | null;
+  unitId: string;
+  unitName: string;
+  unitCode: string;
   trackInventory: boolean;
   type: ProductType;
   stockOnHand: number;
@@ -84,6 +87,9 @@ export const usePosCartStore = create<PosCartState>((set) => ({
             discountAmount: product.discountAmount,
             promotionId: product.promotionId,
             promotionName: product.promotionName,
+            unitId: product.unitId,
+            unitName: product.unitName,
+            unitCode: product.unitCode,
             trackInventory: product.trackInventory,
             type: product.type,
             stockOnHand: product.stockOnHand,
@@ -115,6 +121,9 @@ export const usePosCartStore = create<PosCartState>((set) => ({
           discountAmount: product.discountAmount,
           promotionId: product.promotionId,
           promotionName: product.promotionName,
+          unitId: product.unitId,
+          unitName: product.unitName,
+          unitCode: product.unitCode,
           trackInventory: product.trackInventory,
           type: product.type,
           stockOnHand: product.stockOnHand,
@@ -126,6 +135,9 @@ export const usePosCartStore = create<PosCartState>((set) => ({
           nextItem.discountAmount !== item.discountAmount ||
           nextItem.promotionId !== item.promotionId ||
           nextItem.promotionName !== item.promotionName ||
+          nextItem.unitId !== item.unitId ||
+          nextItem.unitName !== item.unitName ||
+          nextItem.unitCode !== item.unitCode ||
           nextItem.trackInventory !== item.trackInventory ||
           nextItem.type !== item.type ||
           nextItem.stockOnHand !== item.stockOnHand

@@ -104,6 +104,19 @@ export default function ProductsPage() {
         ),
       },
       {
+        accessorKey: "unitName",
+        header: "Unit",
+        cell: ({ row }) =>
+          row.original.unitName ? (
+            <span>
+              {row.original.unitName}
+              {row.original.unitCode ? ` (${row.original.unitCode})` : ""}
+            </span>
+          ) : (
+            "-"
+          ),
+      },
+      {
         accessorKey: "sellingPrice",
         header: () => <div className="text-right">Selling price</div>,
         cell: ({ row }) => (
