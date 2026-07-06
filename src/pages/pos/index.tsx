@@ -321,7 +321,7 @@ export default function PosPage() {
                     {product.trackInventory
                       ? `Stock: ${product.stockOnHand}`
                       : "Non-stock"}{" "}
-                    · {product.locationName}
+                    · {product.unitCode} · {product.locationName}
                   </p>
                 </CardContent>
               </Card>
@@ -403,6 +403,9 @@ export default function PosPage() {
                         {item.trackInventory
                           ? `Stock: ${availableStock}`
                           : "Non-stock"}
+                        {"unitCode" in item && item.unitCode
+                          ? ` · ${item.unitCode}`
+                          : ""}
                       </p>
                       {!isStockSufficient ? (
                         <p className="text-destructive">

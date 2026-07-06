@@ -82,6 +82,7 @@ export type CreateProductInput = {
   sellingPrice: Scalars['Float']['input'];
   sku?: InputMaybe<Scalars['String']['input']>;
   type?: ProductType;
+  unitId: Scalars['String']['input'];
 };
 
 export type CreatePromotionInput = {
@@ -107,6 +108,12 @@ export type CreatePurchaseInput = {
   locationId: Scalars['ID']['input'];
   purchaseDate?: InputMaybe<Scalars['String']['input']>;
   supplierId: Scalars['ID']['input'];
+};
+
+export type CreateRoleInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  name: Scalars['String']['input'];
+  permissionIds?: Array<Scalars['ID']['input']>;
 };
 
 export type CreateSaleInput = {
@@ -156,11 +163,18 @@ export type CreateTenantWithOwnerResponse = {
   tenant: TenantEntity;
 };
 
+export type CreateUnitInput = {
+  code: Scalars['String']['input'];
+  isActive?: Scalars['Boolean']['input'];
+  name: Scalars['String']['input'];
+};
+
 export type CreateUserInput = {
   email: Scalars['String']['input'];
   fullName: Scalars['String']['input'];
   password: Scalars['String']['input'];
   role?: UserRole;
+  roleId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type DashboardSummary = {
@@ -271,11 +285,13 @@ export type Mutation = {
   createProduct: ProductEntity;
   createPromotion: PromotionEntity;
   createPurchase: PurchaseEntity;
+  createRole: RoleEntity;
   createSale: SaleEntity;
   createSaleReturn: SaleEntity;
   createSupplier: SupplierEntity;
   createTenant: TenantEntity;
   createTenantWithOwner: CreateTenantWithOwnerResponse;
+  createUnit: UnitEntity;
   createUser: UserEntity;
   deletePurchase: PurchaseEntity;
   login: AuthResponse;
@@ -285,8 +301,10 @@ export type Mutation = {
   removeLocation: LocationEntity;
   removeProduct: ProductEntity;
   removePromotion: PromotionEntity;
+  removeRole: RoleEntity;
   removeSupplier: SupplierEntity;
   removeTenant: TenantEntity;
+  removeUnit: UnitEntity;
   removeUser: UserEntity;
   setInitialStock: Array<InventoryTransactionEntity>;
   transferStock: Array<InventoryTransactionEntity>;
@@ -295,8 +313,10 @@ export type Mutation = {
   updatePromotion: PromotionEntity;
   updatePurchase: PurchaseEntity;
   updatePurchaseStatus: PurchaseEntity;
+  updateRole: RoleEntity;
   updateSupplier: SupplierEntity;
   updateTenant: TenantEntity;
+  updateUnit: UnitEntity;
   updateUser: UserEntity;
 };
 
@@ -331,6 +351,11 @@ export type MutationCreatePurchaseArgs = {
 };
 
 
+export type MutationCreateRoleArgs = {
+  createRoleInput: CreateRoleInput;
+};
+
+
 export type MutationCreateSaleArgs = {
   createSaleInput: CreateSaleInput;
 };
@@ -353,6 +378,11 @@ export type MutationCreateTenantArgs = {
 
 export type MutationCreateTenantWithOwnerArgs = {
   input: CreateTenantWithOwnerInput;
+};
+
+
+export type MutationCreateUnitArgs = {
+  createUnitInput: CreateUnitInput;
 };
 
 
@@ -401,12 +431,22 @@ export type MutationRemovePromotionArgs = {
 };
 
 
+export type MutationRemoveRoleArgs = {
+  id: Scalars['String']['input'];
+};
+
+
 export type MutationRemoveSupplierArgs = {
   id: Scalars['String']['input'];
 };
 
 
 export type MutationRemoveTenantArgs = {
+  id: Scalars['String']['input'];
+};
+
+
+export type MutationRemoveUnitArgs = {
   id: Scalars['String']['input'];
 };
 
@@ -451,6 +491,11 @@ export type MutationUpdatePurchaseStatusArgs = {
 };
 
 
+export type MutationUpdateRoleArgs = {
+  updateRoleInput: UpdateRoleInput;
+};
+
+
 export type MutationUpdateSupplierArgs = {
   updateSupplierInput: UpdateSupplierInput;
 };
@@ -458,6 +503,11 @@ export type MutationUpdateSupplierArgs = {
 
 export type MutationUpdateTenantArgs = {
   updateTenantInput: UpdateTenantInput;
+};
+
+
+export type MutationUpdateUnitArgs = {
+  updateUnitInput: UpdateUnitInput;
 };
 
 
@@ -501,6 +551,12 @@ export type PaginatedPromotions = {
   meta: PaginationMeta;
 };
 
+export type PaginatedRoles = {
+  __typename?: 'PaginatedRoles';
+  data: Array<RoleEntity>;
+  meta: PaginationMeta;
+};
+
 export type PaginatedSales = {
   __typename?: 'PaginatedSales';
   data: Array<SaleEntity>;
@@ -531,6 +587,12 @@ export type PaginatedTenants = {
   meta: PaginationMeta;
 };
 
+export type PaginatedUnits = {
+  __typename?: 'PaginatedUnits';
+  data: Array<UnitEntity>;
+  meta: PaginationMeta;
+};
+
 export type PaginatedUsers = {
   __typename?: 'PaginatedUsers';
   data: Array<UserEntity>;
@@ -554,6 +616,15 @@ export type PaymentMethodSummary = {
   method: SalesReportPaymentMethod;
 };
 
+export type PermissionEntity = {
+  __typename?: 'PermissionEntity';
+  action: Scalars['String']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  module: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+};
+
 export type PosProduct = {
   __typename?: 'PosProduct';
   barcode?: Maybe<Scalars['String']['output']>;
@@ -571,6 +642,9 @@ export type PosProduct = {
   stockOnHand: Scalars['Int']['output'];
   trackInventory: Scalars['Boolean']['output'];
   type: ProductType;
+  unitCode: Scalars['String']['output'];
+  unitId: Scalars['ID']['output'];
+  unitName: Scalars['String']['output'];
 };
 
 export type PosProductFilterInput = {
@@ -599,6 +673,9 @@ export type ProductEntity = {
   tenantId: Scalars['String']['output'];
   trackInventory: Scalars['Boolean']['output'];
   type: ProductType;
+  unitCode?: Maybe<Scalars['String']['output']>;
+  unitId: Scalars['String']['output'];
+  unitName?: Maybe<Scalars['String']['output']>;
   updatedAt: Scalars['DateTime']['output'];
 };
 
@@ -719,6 +796,7 @@ export type Query = {
   locations: PaginatedLocations;
   locationsByTenant: Array<LocationEntity>;
   me: UserResponse;
+  permissions: Array<PermissionEntity>;
   posProducts: PaginatedPosProducts;
   previewSalePricing: SalePricingPreviewEntity;
   product?: Maybe<ProductEntity>;
@@ -729,6 +807,9 @@ export type Query = {
   promotionsByTenant: Array<PromotionEntity>;
   purchase: PurchaseEntity;
   purchases: Array<PurchaseEntity>;
+  role?: Maybe<RoleEntity>;
+  roles: PaginatedRoles;
+  rolesByTenant: Array<RoleEntity>;
   sale?: Maybe<SaleEntity>;
   sales: PaginatedSales;
   salesReportItems: PaginatedSalesReportItems;
@@ -741,6 +822,9 @@ export type Query = {
   suppliersByTenant: Array<SupplierEntity>;
   tenant?: Maybe<TenantEntity>;
   tenants: PaginatedTenants;
+  unit?: Maybe<UnitEntity>;
+  units: PaginatedUnits;
+  unitsByTenant: Array<UnitEntity>;
   user?: Maybe<UserEntity>;
   users: PaginatedUsers;
   usersByTenant: Array<UserEntity>;
@@ -845,6 +929,17 @@ export type QueryPurchasesArgs = {
 };
 
 
+export type QueryRoleArgs = {
+  id: Scalars['String']['input'];
+};
+
+
+export type QueryRolesArgs = {
+  limit?: Scalars['Int']['input'];
+  page?: Scalars['Int']['input'];
+};
+
+
 export type QuerySaleArgs = {
   id: Scalars['String']['input'];
 };
@@ -908,6 +1003,17 @@ export type QueryTenantsArgs = {
 };
 
 
+export type QueryUnitArgs = {
+  id: Scalars['String']['input'];
+};
+
+
+export type QueryUnitsArgs = {
+  limit?: Scalars['Int']['input'];
+  page?: Scalars['Int']['input'];
+};
+
+
 export type QueryUserArgs = {
   id: Scalars['String']['input'];
 };
@@ -936,6 +1042,17 @@ export type RegisterInput = {
   role?: InputMaybe<UserRole>;
   /** Tenant subdomain. This can be auto-filled from the frontend URL. */
   subdomain: Scalars['String']['input'];
+};
+
+export type RoleEntity = {
+  __typename?: 'RoleEntity';
+  createdAt: Scalars['DateTime']['output'];
+  description?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  permissions: Array<PermissionEntity>;
+  tenantId: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
 };
 
 export type SaleDiscountEntity = {
@@ -1208,6 +1325,17 @@ export type TenantEntity = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
+export type UnitEntity = {
+  __typename?: 'UnitEntity';
+  code: Scalars['String']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  name: Scalars['String']['output'];
+  tenantId: Scalars['ID']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
 export type UpdateLocationInput = {
   id: Scalars['String']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
@@ -1223,6 +1351,7 @@ export type UpdateProductInput = {
   sellingPrice?: InputMaybe<Scalars['Float']['input']>;
   sku?: InputMaybe<Scalars['String']['input']>;
   type?: InputMaybe<ProductType>;
+  unitId?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type UpdatePromotionInput = {
@@ -1257,6 +1386,13 @@ export type UpdatePurchaseStatusInput = {
   status: PurchaseStatus;
 };
 
+export type UpdateRoleInput = {
+  description?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  name?: InputMaybe<Scalars['String']['input']>;
+  permissionIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+};
+
 export type UpdateSupplierInput = {
   address?: InputMaybe<Scalars['String']['input']>;
   code?: InputMaybe<Scalars['String']['input']>;
@@ -1274,12 +1410,20 @@ export type UpdateTenantInput = {
   subdomain?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type UpdateUnitInput = {
+  code?: InputMaybe<Scalars['String']['input']>;
+  id: Scalars['ID']['input'];
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  name?: InputMaybe<Scalars['String']['input']>;
+};
+
 export type UpdateUserInput = {
   email?: InputMaybe<Scalars['String']['input']>;
   fullName?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['String']['input'];
   password?: InputMaybe<Scalars['String']['input']>;
   role?: InputMaybe<UserRole>;
+  roleId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 export type UserEntity = {
@@ -1288,7 +1432,8 @@ export type UserEntity = {
   email: Scalars['String']['output'];
   fullName: Scalars['String']['output'];
   id: Scalars['String']['output'];
-  role?: Maybe<UserRole>;
+  role?: Maybe<Scalars['String']['output']>;
+  roleId?: Maybe<Scalars['String']['output']>;
   tenantId: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -1302,6 +1447,7 @@ export type UserResponse = {
   isSuperuser: Scalars['Boolean']['output'];
   permissions: Array<Scalars['String']['output']>;
   role: Scalars['String']['output'];
+  roleId?: Maybe<Scalars['String']['output']>;
 };
 
 export const UserRole = {

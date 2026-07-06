@@ -21,6 +21,9 @@ const GET_PRODUCTS = /* GraphQL */ `
         name
         type
         trackInventory
+        unitId
+        unitName
+        unitCode
         sellingPrice
         lastCostPrice
         isActive
@@ -48,6 +51,9 @@ const CREATE_PRODUCT = /* GraphQL */ `
       name
       type
       trackInventory
+      unitId
+      unitName
+      unitCode
       sellingPrice
       lastCostPrice
       isActive
@@ -66,6 +72,9 @@ const UPDATE_PRODUCT = /* GraphQL */ `
       name
       type
       trackInventory
+      unitId
+      unitName
+      unitCode
       sellingPrice
       lastCostPrice
       isActive
@@ -85,6 +94,9 @@ const GET_POS_PRODUCTS = /* GraphQL */ `
         name
         type
         trackInventory
+        unitId
+        unitName
+        unitCode
         originalPrice
         sellingPrice
         discountAmount
