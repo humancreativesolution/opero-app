@@ -23,6 +23,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { PromotionFormSheet } from "@/features/promotion/components/promotion-form-sheet.component";
+import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
+import { PERMISSIONS } from "@/components/rbac/permissions";
+import { canAccess } from "@/components/rbac/rbac.utils";
 import type {
   PromotionEntity,
   PromotionStatus,
@@ -104,6 +107,12 @@ export default function PromotionsPage() {
     },
   });
   const removePromotion = useRemovePromotion();
+  const canUpdatePromotion = canAccess({
+    anyOf: [PERMISSIONS.promotions.update],
+  });
+  const canDeletePromotion = canAccess({
+    anyOf: [PERMISSIONS.promotions.delete],
+  });
 
   function handleCreate() {
     setSelectedPromotion(null);
@@ -195,32 +204,38 @@ export default function PromotionsPage() {
         header: () => <div className="text-right">Action</div>,
         cell: ({ row }) => (
           <div className="text-right">
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button size="icon-sm" variant="ghost">
-                  <MoreVertical className="size-4" />
-                  <span className="sr-only">Open promotion actions</span>
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                <DropdownMenuItem onSelect={() => handleEdit(row.original)}>
-                  <Edit className="size-4" />
-                  Edit
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  onSelect={() => setDeletePromotion(row.original)}
-                  variant="destructive"
-                >
-                  <Trash2 className="size-4" />
-                  Delete
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {canUpdatePromotion || canDeletePromotion ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon-sm" variant="ghost">
+                    <MoreVertical className="size-4" />
+                    <span className="sr-only">Open promotion actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {canUpdatePromotion ? (
+                    <DropdownMenuItem onSelect={() => handleEdit(row.original)}>
+                      <Edit className="size-4" />
+                      Edit
+                    </DropdownMenuItem>
+                  ) : null}
+                  {canDeletePromotion ? (
+                    <DropdownMenuItem
+                      onSelect={() => setDeletePromotion(row.original)}
+                      variant="destructive"
+                    >
+                      <Trash2 className="size-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : null}
           </div>
         ),
       },
     ],
-    [],
+    [canDeletePromotion, canUpdatePromotion],
   );
 
   return (
@@ -232,10 +247,12 @@ export default function PromotionsPage() {
             Manage POS discounts calculated by backend at checkout.
           </p>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="size-4" />
-          Create promotion
-        </Button>
+        <PermissionGate anyOf={[PERMISSIONS.promotions.create]}>
+          <Button onClick={handleCreate}>
+            <Plus className="size-4" />
+            Create promotion
+          </Button>
+        </PermissionGate>
       </div>
 
       <Card>

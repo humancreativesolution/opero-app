@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/dialog";
 import { CloseCashierShiftSheet } from "@/features/cashier-shift/components/close-cashier-shift-sheet.component";
 import { OpenCashierShiftSheet } from "@/features/cashier-shift/components/open-cashier-shift-sheet.component";
+import { PERMISSIONS } from "@/components/rbac/permissions";
+import { canAccess } from "@/components/rbac/rbac.utils";
 import type { SalesReportPaymentMethod } from "@/graphql/generated";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
@@ -57,6 +59,9 @@ export default function PosPage() {
   const [openShiftSheetOpen, setOpenShiftSheetOpen] = useState(false);
   const [closeShiftSheetOpen, setCloseShiftSheetOpen] = useState(false);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
+  const canCreateTransaction = canAccess({
+    anyOf: [PERMISSIONS.pos.transaction],
+  });
   const locationsQuery = useLocations({
     limit: 100,
     filter: { type: "OUTLET" },
@@ -516,7 +521,11 @@ export default function PosPage() {
             ) : null}
             <Button
               className="mt-3 w-full"
-              disabled={!selectedLocationId || currentShiftQuery.isLoading}
+              disabled={
+                !canCreateTransaction ||
+                !selectedLocationId ||
+                currentShiftQuery.isLoading
+              }
               onClick={() =>
                 currentShift
                   ? setCloseShiftSheetOpen(true)
@@ -601,6 +610,7 @@ export default function PosPage() {
             className="h-12 w-full"
             disabled={
               createSale.isPending ||
+              !canCreateTransaction ||
               items.length === 0 ||
               !selectedLocationId ||
               !hasOpenShift ||
@@ -726,7 +736,10 @@ export default function PosPage() {
             >
               Cancel
             </Button>
-            <Button disabled={createSale.isPending} onClick={handleSaveAndPrint}>
+            <Button
+              disabled={createSale.isPending || !canCreateTransaction}
+              onClick={handleSaveAndPrint}
+            >
               <Printer className="size-4" />
               {createSale.isPending ? "Saving..." : "Save & Print"}
             </Button>

@@ -1,14 +1,37 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { gqlClient } from "@/libs/graphql";
 import { ErrorHelper } from "@libs/error";
-import { useAtomicSetter } from "@libs/state";
-import { errorAtom } from "@states/atoms/error.atom";
-import type {
-  PaginatedUsers,
-  UserEntity,
-  CreateUserInput,
-  UpdateUserInput,
-} from "@graphql/generated";
+import type { PaginationMeta } from "@graphql/generated";
+
+export type UserEntity = {
+  id: string;
+  tenantId: string;
+  email: string;
+  fullName: string;
+  roleId?: string | null;
+  role?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+type PaginatedUsers = {
+  data: UserEntity[];
+  meta: PaginationMeta;
+};
+
+export type CreateUserInput = {
+  email: string;
+  password: string;
+  fullName: string;
+  roleId: string;
+};
+
+export type UpdateUserInput = {
+  id: string;
+  email?: string;
+  fullName?: string;
+  roleId?: string;
+};
 
 // ─── GraphQL Documents ─────────────────────────────────────────────────────────
 
@@ -20,6 +43,7 @@ const GET_USERS = /* GraphQL */ `
         tenantId
         email
         fullName
+        roleId
         role
         createdAt
         updatedAt
@@ -43,6 +67,7 @@ const GET_USER = /* GraphQL */ `
       tenantId
       email
       fullName
+      roleId
       role
       createdAt
       updatedAt
@@ -57,6 +82,7 @@ const CREATE_USER = /* GraphQL */ `
       tenantId
       email
       fullName
+      roleId
       role
       createdAt
       updatedAt
@@ -71,6 +97,7 @@ const UPDATE_USER = /* GraphQL */ `
       tenantId
       email
       fullName
+      roleId
       role
       createdAt
       updatedAt
@@ -121,7 +148,6 @@ export function useGetUser(id: string) {
 
 export function useCreateUser() {
   const queryClient = useQueryClient();
-  const setGlobalError = useAtomicSetter(errorAtom);
 
   return useMutation({
     mutationFn: (createUserInput: CreateUserInput) =>
@@ -132,14 +158,13 @@ export function useCreateUser() {
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
     },
     onError: (error: unknown) => {
-      setGlobalError(ErrorHelper.parse(error));
+      throw ErrorHelper.parse(error);
     },
   });
 }
 
 export function useUpdateUser() {
   const queryClient = useQueryClient();
-  const setGlobalError = useAtomicSetter(errorAtom);
 
   return useMutation({
     mutationFn: (updateUserInput: UpdateUserInput) =>
@@ -153,14 +178,13 @@ export function useUpdateUser() {
       });
     },
     onError: (error: unknown) => {
-      setGlobalError(ErrorHelper.parse(error));
+      throw ErrorHelper.parse(error);
     },
   });
 }
 
 export function useRemoveUser() {
   const queryClient = useQueryClient();
-  const setGlobalError = useAtomicSetter(errorAtom);
 
   return useMutation({
     mutationFn: (id: string) =>
@@ -169,7 +193,7 @@ export function useRemoveUser() {
       queryClient.invalidateQueries({ queryKey: userKeys.lists() });
     },
     onError: (error: unknown) => {
-      setGlobalError(ErrorHelper.parse(error));
+      throw ErrorHelper.parse(error);
     },
   });
 }

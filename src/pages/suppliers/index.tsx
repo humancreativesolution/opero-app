@@ -6,6 +6,9 @@ import { DataTable } from "@/components/data-table/data-table.component";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
+import { PERMISSIONS } from "@/components/rbac/permissions";
+import { canAccess } from "@/components/rbac/rbac.utils";
 import { SupplierFormSheet } from "@/features/supplier/components/supplier-form-sheet.component";
 import type { SupplierEntity } from "@/graphql/generated";
 import { useSuppliers } from "@/resources/gql/supplier.gql";
@@ -18,6 +21,7 @@ export default function SuppliersPage() {
   const [selectedSupplier, setSelectedSupplier] =
     useState<SupplierEntity | null>(null);
   const suppliersQuery = useSuppliers({ page, limit });
+  const canUpdateSupplier = canAccess({ anyOf: [PERMISSIONS.suppliers.update] });
   const filteredSuppliers = useMemo(() => {
     const suppliers = suppliersQuery.data?.data ?? [];
     const keyword = search.trim().toLowerCase();
@@ -81,19 +85,21 @@ export default function SuppliersPage() {
         header: () => <div className="text-right">Action</div>,
         cell: ({ row }) => (
           <div className="text-right">
-            <Button
-              onClick={() => handleEdit(row.original)}
-              size="icon-sm"
-              variant="ghost"
-            >
-              <Edit className="size-4" />
-              <span className="sr-only">Edit supplier</span>
-            </Button>
+            {canUpdateSupplier ? (
+              <Button
+                onClick={() => handleEdit(row.original)}
+                size="icon-sm"
+                variant="ghost"
+              >
+                <Edit className="size-4" />
+                <span className="sr-only">Edit supplier</span>
+              </Button>
+            ) : null}
           </div>
         ),
       },
     ],
-    [],
+    [canUpdateSupplier],
   );
 
   return (
@@ -105,10 +111,12 @@ export default function SuppliersPage() {
             Manage suppliers used by purchasing and purchase history.
           </p>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="size-4" />
-          Create supplier
-        </Button>
+        <PermissionGate anyOf={[PERMISSIONS.suppliers.create]}>
+          <Button onClick={handleCreate}>
+            <Plus className="size-4" />
+            Create supplier
+          </Button>
+        </PermissionGate>
       </div>
 
       <Card>

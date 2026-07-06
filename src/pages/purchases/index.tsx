@@ -32,6 +32,9 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { PurchaseFormSheet } from "@/features/purchase/components/purchase-form-sheet.component";
+import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
+import { PERMISSIONS } from "@/components/rbac/permissions";
+import { canAccess } from "@/components/rbac/rbac.utils";
 import type { PurchaseEntity, PurchaseStatus } from "@/graphql/generated";
 import { ErrorHelper } from "@/libs/error";
 import {
@@ -111,6 +114,7 @@ export default function PurchasesPage() {
   const receivePurchase = useReceivePurchase();
   const isUpdatingStatus =
     updatePurchaseStatus.isPending || receivePurchase.isPending;
+  const canUpdatePurchase = canAccess({ anyOf: [PERMISSIONS.purchases.update] });
   const filteredPurchases = useMemo(() => {
     const purchases = purchasesQuery.data ?? [];
     const keyword = search.trim().toLowerCase();
@@ -258,7 +262,8 @@ export default function PurchasesPage() {
             purchase.status === "PARTIALLY_RECEIVED";
           const canCancel =
             purchase.status === "DRAFT" || purchase.status === "CONFIRMED";
-          const hasActions = canConfirm || canReceive || canCancel;
+          const hasActions =
+            canUpdatePurchase && (canConfirm || canReceive || canCancel);
 
           return (
             <div className="text-right">
@@ -270,7 +275,7 @@ export default function PurchasesPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
-                  {canConfirm ? (
+                  {canUpdatePurchase && canConfirm ? (
                     <DropdownMenuItem
                       className="text-teal-600 focus:bg-teal-50 focus:text-teal-700 dark:text-teal-400 dark:focus:bg-teal-950/40 dark:focus:text-teal-300"
                       onSelect={() =>
@@ -286,7 +291,7 @@ export default function PurchasesPage() {
                       Confirm
                     </DropdownMenuItem>
                   ) : null}
-                  {canReceive ? (
+                  {canUpdatePurchase && canReceive ? (
                     <DropdownMenuItem
                       onSelect={() =>
                         openStatusAction(
@@ -301,7 +306,7 @@ export default function PurchasesPage() {
                       Mark as received
                     </DropdownMenuItem>
                   ) : null}
-                  {canCancel ? (
+                  {canUpdatePurchase && canCancel ? (
                     <DropdownMenuItem
                       onSelect={() =>
                         openStatusAction(
@@ -327,7 +332,7 @@ export default function PurchasesPage() {
         },
       },
     ],
-    [],
+    [canUpdatePurchase],
   );
 
   return (
@@ -339,10 +344,12 @@ export default function PurchasesPage() {
             Manage purchase orders, stock-in flow, and supplier buying history.
           </p>
         </div>
-        <Button onClick={() => setSheetOpen(true)}>
-          <Plus className="size-4" />
-          Create purchase
-        </Button>
+        <PermissionGate anyOf={[PERMISSIONS.purchases.create]}>
+          <Button onClick={() => setSheetOpen(true)}>
+            <Plus className="size-4" />
+            Create purchase
+          </Button>
+        </PermissionGate>
       </div>
 
       <Card>

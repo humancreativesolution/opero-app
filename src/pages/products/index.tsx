@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ProductFormSheet } from "@/features/product/components/product-form-sheet.component";
+import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
+import { PERMISSIONS } from "@/components/rbac/permissions";
+import { canAccess } from "@/components/rbac/rbac.utils";
 import type { ProductEntity } from "@/graphql/generated";
 import { useProducts } from "@/resources/gql/product.gql";
 
@@ -38,6 +41,7 @@ export default function ProductsPage() {
     null,
   );
   const productsQuery = useProducts({ page, limit });
+  const canUpdateProduct = canAccess({ anyOf: [PERMISSIONS.products.update] });
   const filteredProducts = useMemo(() => {
     const products = productsQuery.data?.data ?? [];
     const keyword = search.trim().toLowerCase();
@@ -131,19 +135,21 @@ export default function ProductsPage() {
         header: () => <div className="text-right">Action</div>,
         cell: ({ row }) => (
           <div className="text-right">
-            <Button
-              onClick={() => handleEdit(row.original)}
-              size="icon-sm"
-              variant="ghost"
-            >
-              <Edit className="size-4" />
-              <span className="sr-only">Edit product</span>
-            </Button>
+            {canUpdateProduct ? (
+              <Button
+                onClick={() => handleEdit(row.original)}
+                size="icon-sm"
+                variant="ghost"
+              >
+                <Edit className="size-4" />
+                <span className="sr-only">Edit product</span>
+              </Button>
+            ) : null}
           </div>
         ),
       },
     ],
-    [],
+    [canUpdateProduct],
   );
 
   return (
@@ -155,10 +161,12 @@ export default function ProductsPage() {
             Manage stock items and services used by POS and reports.
           </p>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="size-4" />
-          Create product
-        </Button>
+        <PermissionGate anyOf={[PERMISSIONS.products.create]}>
+          <Button onClick={handleCreate}>
+            <Plus className="size-4" />
+            Create product
+          </Button>
+        </PermissionGate>
       </div>
 
       <Card>

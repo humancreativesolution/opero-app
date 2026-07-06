@@ -17,6 +17,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
+import { PERMISSIONS } from "@/components/rbac/permissions";
 import type { SaleType, SalesReportPaymentMethod } from "@/graphql/generated";
 import { useLocations } from "@/resources/gql/location.gql";
 import {
@@ -362,14 +364,18 @@ export default function ReportsPage() {
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
-          <Button
-            disabled={exportTransactionsCsv.isPending || exportItemsCsv.isPending}
-            onClick={handleExportCsv}
-            variant="outline"
-          >
-            <Download className="size-4" />
-            Export CSV
-          </Button>
+          <PermissionGate anyOf={[PERMISSIONS.reports.export]}>
+            <Button
+              disabled={
+                exportTransactionsCsv.isPending || exportItemsCsv.isPending
+              }
+              onClick={handleExportCsv}
+              variant="outline"
+            >
+              <Download className="size-4" />
+              Export CSV
+            </Button>
+          </PermissionGate>
           <Button
             onClick={() => setView("transactions")}
             variant={view === "transactions" ? "default" : "outline"}
