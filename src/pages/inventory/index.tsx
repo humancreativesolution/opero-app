@@ -25,6 +25,8 @@ import {
 } from "@/components/ui/table";
 import { InitialStockFormSheet } from "@/features/inventory/components/initial-stock-form-sheet.component";
 import { StockTransferFormSheet } from "@/features/inventory/components/stock-transfer-form-sheet.component";
+import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
+import { PERMISSIONS } from "@/components/rbac/permissions";
 import type {
   InventoryBalance,
   InventoryTransactionEntity,
@@ -369,14 +371,21 @@ export default function InventoryPage() {
           </p>
         </div>
         <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
-          <Button onClick={() => setInitialStockSheetOpen(true)} variant="outline">
-            <PackagePlus className="size-4" />
-            Set initial stock
-          </Button>
-          <Button onClick={() => setTransferSheetOpen(true)}>
-            <ArrowRightLeft className="size-4" />
-            Transfer stock
-          </Button>
+          <PermissionGate anyOf={[PERMISSIONS.stock.initial]}>
+            <Button
+              onClick={() => setInitialStockSheetOpen(true)}
+              variant="outline"
+            >
+              <PackagePlus className="size-4" />
+              Set initial stock
+            </Button>
+          </PermissionGate>
+          <PermissionGate anyOf={[PERMISSIONS.stock.transfer]}>
+            <Button onClick={() => setTransferSheetOpen(true)}>
+              <ArrowRightLeft className="size-4" />
+              Transfer stock
+            </Button>
+          </PermissionGate>
           <div className="inline-flex rounded-lg border bg-background p-1">
             <Button
               className={cn(activeTab !== "stock" && "text-muted-foreground")}

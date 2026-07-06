@@ -8,6 +8,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { LocationFormSheet } from "@/features/location/components/location-form-sheet.component";
+import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
+import { PERMISSIONS } from "@/components/rbac/permissions";
+import { canAccess } from "@/components/rbac/rbac.utils";
 import type { LocationEntity } from "@/graphql/generated";
 import { useLocations } from "@/resources/gql/location.gql";
 
@@ -19,6 +22,7 @@ export default function LocationsPage() {
   const [selectedLocation, setSelectedLocation] =
     useState<LocationEntity | null>(null);
   const locationsQuery = useLocations({ page, limit });
+  const canUpdateLocation = canAccess({ anyOf: [PERMISSIONS.locations.update] });
   const filteredLocations = useMemo(() => {
     const locations = locationsQuery.data?.data ?? [];
     const keyword = search.trim().toLowerCase();
@@ -78,19 +82,21 @@ export default function LocationsPage() {
         header: () => <div className="text-right">Action</div>,
         cell: ({ row }) => (
           <div className="text-right">
-            <Button
-              onClick={() => handleEdit(row.original)}
-              size="icon-sm"
-              variant="ghost"
-            >
-              <Edit className="size-4" />
-              <span className="sr-only">Edit location</span>
-            </Button>
+            {canUpdateLocation ? (
+              <Button
+                onClick={() => handleEdit(row.original)}
+                size="icon-sm"
+                variant="ghost"
+              >
+                <Edit className="size-4" />
+                <span className="sr-only">Edit location</span>
+              </Button>
+            ) : null}
           </div>
         ),
       },
     ],
-    [],
+    [canUpdateLocation],
   );
 
   return (
@@ -102,10 +108,12 @@ export default function LocationsPage() {
             Manage outlets, stores, and warehouses used by POS and inventory.
           </p>
         </div>
-        <Button onClick={handleCreate}>
-          <Plus className="size-4" />
-          Create location
-        </Button>
+        <PermissionGate anyOf={[PERMISSIONS.locations.create]}>
+          <Button onClick={handleCreate}>
+            <Plus className="size-4" />
+            Create location
+          </Button>
+        </PermissionGate>
       </div>
 
       <Card>

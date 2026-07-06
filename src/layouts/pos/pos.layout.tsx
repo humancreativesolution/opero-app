@@ -5,6 +5,8 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { AuthMenu } from "@/features/auth/components/auth-menu.component";
+import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
+import { PERMISSIONS } from "@/components/rbac/permissions";
 
 export function PosLayout() {
   return (
@@ -22,25 +24,35 @@ export function PosLayout() {
 
         <div className="hidden items-center gap-2 md:flex">
           <Badge variant="secondary">Shift Aktif</Badge>
-          <Button asChild size="sm" variant="outline">
-            <Link to="/dashboard">
-              <Home className="size-4" />
-              Dashboard
-            </Link>
-          </Button>
-          <Button asChild size="sm" variant="outline">
-            <Link to="/inventory">
-              <Boxes className="size-4" />
-              Inventory
-            </Link>
-          </Button>
+          <PermissionGate
+            anyOf={[PERMISSIONS.dashboard.view, PERMISSIONS.reports.view]}
+          >
+            <Button asChild size="sm" variant="outline">
+              <Link to="/dashboard">
+                <Home className="size-4" />
+                Dashboard
+              </Link>
+            </Button>
+          </PermissionGate>
+          <PermissionGate anyOf={[PERMISSIONS.stock.read]}>
+            <Button asChild size="sm" variant="outline">
+              <Link to="/inventory">
+                <Boxes className="size-4" />
+                Inventory
+              </Link>
+            </Button>
+          </PermissionGate>
           <Separator className="h-6" orientation="vertical" />
           <Button size="icon-sm" variant="ghost">
             <Maximize2 className="size-4" />
           </Button>
-          <Button size="icon-sm" variant="ghost">
-            <Settings className="size-4" />
-          </Button>
+          <PermissionGate
+            anyOf={[PERMISSIONS.settings.read, PERMISSIONS.settings.update]}
+          >
+            <Button size="icon-sm" variant="ghost">
+              <Settings className="size-4" />
+            </Button>
+          </PermissionGate>
           <AuthMenu />
         </div>
       </header>

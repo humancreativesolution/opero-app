@@ -15,10 +15,52 @@ import SettingsPage from "@pages/settings";
 import SuppliersPage from "@pages/suppliers";
 import UsersPage from "@pages/users";
 
+import { PERMISSIONS } from "@/components/rbac/permissions";
+import { withPermission } from "@/components/rbac/with-permission";
 import { AppLayout } from "@/layouts/app/app.layout";
 import { PosLayout } from "@/layouts/pos/pos.layout";
 import { ProtectedRoute } from "@/routes/protected-route";
 import { PublicRoute } from "@/routes/public-route";
+
+const DashboardRoute = withPermission(DashboardPage, {
+  anyOf: [PERMISSIONS.dashboard.view, PERMISSIONS.reports.view],
+});
+const ProductsRoute = withPermission(ProductsPage, {
+  anyOf: [PERMISSIONS.products.read],
+});
+const PromotionsRoute = withPermission(PromotionsPage, {
+  anyOf: [PERMISSIONS.promotions.read],
+});
+const SalesRoute = withPermission(SalesPage, {
+  anyOf: [PERMISSIONS.receipt.view, PERMISSIONS.reports.view],
+});
+const SuppliersRoute = withPermission(SuppliersPage, {
+  anyOf: [PERMISSIONS.suppliers.read],
+});
+const LocationsRoute = withPermission(LocationsPage, {
+  anyOf: [PERMISSIONS.locations.read],
+});
+const PurchasesRoute = withPermission(PurchasesPage, {
+  anyOf: [PERMISSIONS.purchases.read],
+});
+const InventoryRoute = withPermission(InventoryPage, {
+  anyOf: [PERMISSIONS.stock.read],
+});
+const ReportsRoute = withPermission(ReportsPage, {
+  anyOf: [PERMISSIONS.reports.view],
+});
+const StaffRoute = withPermission(() => <UsersPage view="staff" />, {
+  anyOf: [PERMISSIONS.users.read],
+});
+const RolesRoute = withPermission(() => <UsersPage view="roles" />, {
+  anyOf: [PERMISSIONS.roles.read],
+});
+const SettingsRoute = withPermission(SettingsPage, {
+  anyOf: [PERMISSIONS.settings.read, PERMISSIONS.settings.update],
+});
+const PosRoute = withPermission(PosPage, {
+  anyOf: [PERMISSIONS.pos.access],
+});
 
 const routes = [
   {
@@ -30,17 +72,24 @@ const routes = [
     ),
     children: [
       { index: true, element: <Navigate replace to="/dashboard" /> },
-      { path: "dashboard", element: <DashboardPage /> },
-      { path: "products", element: <ProductsPage /> },
-      { path: "promotions", element: <PromotionsPage /> },
-      { path: "sales", element: <SalesPage /> },
-      { path: "suppliers", element: <SuppliersPage /> },
-      { path: "locations", element: <LocationsPage /> },
-      { path: "purchases", element: <PurchasesPage /> },
-      { path: "inventory", element: <InventoryPage /> },
-      { path: "reports", element: <ReportsPage /> },
-      { path: "users", element: <UsersPage /> },
-      { path: "settings", element: <SettingsPage /> },
+      { path: "dashboard", element: <DashboardRoute /> },
+      { path: "products", element: <ProductsRoute /> },
+      { path: "promotions", element: <PromotionsRoute /> },
+      { path: "sales", element: <SalesRoute /> },
+      { path: "suppliers", element: <SuppliersRoute /> },
+      { path: "locations", element: <LocationsRoute /> },
+      { path: "purchases", element: <PurchasesRoute /> },
+      { path: "inventory", element: <InventoryRoute /> },
+      { path: "reports", element: <ReportsRoute /> },
+      {
+        path: "users",
+        children: [
+          { index: true, element: <Navigate replace to="/users/staff" /> },
+          { path: "staff", element: <StaffRoute /> },
+          { path: "roles", element: <RolesRoute /> },
+        ],
+      },
+      { path: "settings", element: <SettingsRoute /> },
     ],
   },
   {
@@ -50,7 +99,7 @@ const routes = [
         <PosLayout />
       </ProtectedRoute>
     ),
-    children: [{ index: true, element: <PosPage /> }],
+    children: [{ index: true, element: <PosRoute /> }],
   },
   {
     path: "/login",
