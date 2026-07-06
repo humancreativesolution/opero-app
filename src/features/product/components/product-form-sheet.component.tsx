@@ -40,6 +40,7 @@ type ProductFormSheetProps = {
 };
 
 const defaultValues: ProductFormValues = {
+  type: "STOCK",
   sku: "",
   barcode: "",
   name: "",
@@ -78,6 +79,7 @@ export function ProductFormSheet({
         ? {
             sku: product.sku ?? "",
             barcode: product.barcode ?? "",
+            type: product.type,
             name: product.name,
             sellingPrice: product.sellingPrice,
             lastCostPrice: product.lastCostPrice,
@@ -92,6 +94,7 @@ export function ProductFormSheet({
       if (product) {
         await updateProduct.mutateAsync({
           id: product.id,
+          type: values.type,
           sku: optionalString(values.sku),
           barcode: optionalString(values.barcode),
           name: values.name.trim(),
@@ -102,6 +105,7 @@ export function ProductFormSheet({
         toast.success("Product updated");
       } else {
         await createProduct.mutateAsync({
+          type: values.type,
           sku: optionalString(values.sku),
           barcode: optionalString(values.barcode),
           name: values.name.trim(),
@@ -126,7 +130,7 @@ export function ProductFormSheet({
         <SheetHeader>
           <SheetTitle>{isEdit ? "Edit product" : "Create product"}</SheetTitle>
           <SheetDescription>
-            Products are shared by POS, purchasing, and inventory.
+            Catalog items are shared by POS, promotions, reports, and stock flows.
           </SheetDescription>
         </SheetHeader>
 
@@ -136,6 +140,27 @@ export function ProductFormSheet({
             id="product-form"
             onSubmit={form.handleSubmit(handleSubmit)}
           >
+            <FormField
+              control={form.control}
+              name="type"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel>Item type</FormLabel>
+                  <FormControl>
+                    <select
+                      className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
+                      onChange={field.onChange}
+                      value={field.value}
+                    >
+                      <option value="STOCK">Stock item</option>
+                      <option value="SERVICE">Service</option>
+                    </select>
+                  </FormControl>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
+
             <div className="grid gap-4 sm:grid-cols-2">
               <FormField
                 control={form.control}
@@ -208,7 +233,7 @@ export function ProductFormSheet({
                 name="lastCostPrice"
                 render={({ field }) => (
                   <FormItem>
-                    <FormLabel>Last cost price</FormLabel>
+                    <FormLabel>Cost price</FormLabel>
                     <FormControl>
                       <Input
                         min="0"
@@ -232,7 +257,7 @@ export function ProductFormSheet({
               render={({ field }) => (
                 <FormItem className="flex flex-row items-center justify-between rounded-lg border p-3">
                   <div className="space-y-0.5">
-                    <FormLabel>Active product</FormLabel>
+                    <FormLabel>Active item</FormLabel>
                     <p className="text-sm text-muted-foreground">
                       Inactive products will not be available in POS.
                     </p>

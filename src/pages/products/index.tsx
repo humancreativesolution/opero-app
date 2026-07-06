@@ -21,6 +21,14 @@ function formatCurrency(value: number) {
   return currencyFormatter.format(value);
 }
 
+function getProductTypeBadgeClassName(type: ProductEntity["type"]) {
+  if (type === "SERVICE") {
+    return "border-sky-200 bg-sky-50 text-sky-700 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300";
+  }
+
+  return "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950/40 dark:text-teal-300";
+}
+
 export default function ProductsPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
@@ -39,7 +47,7 @@ export default function ProductsPage() {
     }
 
     return products.filter((product) =>
-      [product.barcode, product.sku, product.name]
+      [product.barcode, product.sku, product.name, product.type]
         .filter(Boolean)
         .some((value) => value?.toLowerCase().includes(keyword)),
     );
@@ -78,6 +86,18 @@ export default function ProductsPage() {
         accessorKey: "barcode",
         header: "Barcode",
         cell: ({ row }) => row.original.barcode || "-",
+      },
+      {
+        accessorKey: "type",
+        header: "Type",
+        cell: ({ row }) => (
+          <Badge
+            className={getProductTypeBadgeClassName(row.original.type)}
+            variant="outline"
+          >
+            {row.original.type === "SERVICE" ? "Service" : "Stock"}
+          </Badge>
+        ),
       },
       {
         accessorKey: "sellingPrice",
@@ -132,7 +152,7 @@ export default function ProductsPage() {
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">Products</h1>
           <p className="text-sm text-muted-foreground">
-            Manage products used by POS, purchasing, and inventory.
+            Manage stock items and services used by POS and reports.
           </p>
         </div>
         <Button onClick={handleCreate}>
@@ -167,7 +187,7 @@ export default function ProductsPage() {
                   <Input
                     className="pl-9"
                     onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search barcode, SKU, or product name"
+                    placeholder="Search barcode, SKU, product name, or type"
                     value={search}
                   />
                 </div>

@@ -1,6 +1,6 @@
 import { create } from "zustand";
 
-import type { PosProduct } from "@/graphql/generated";
+import type { PosProduct, ProductType } from "@/graphql/generated";
 
 export type PosCartItem = {
   productId: string;
@@ -12,6 +12,8 @@ export type PosCartItem = {
   discountAmount: number;
   promotionId?: string | null;
   promotionName?: string | null;
+  trackInventory: boolean;
+  type: ProductType;
   stockOnHand: number;
   qty: number;
 };
@@ -58,7 +60,12 @@ export const usePosCartStore = create<PosCartState>((set) => ({
         return {
           items: state.items.map((item) =>
             item.productId === product.id
-              ? { ...item, qty: Math.min(item.stockOnHand, item.qty + 1) }
+              ? {
+                  ...item,
+                  qty: item.trackInventory
+                    ? Math.min(item.stockOnHand, item.qty + 1)
+                    : item.qty + 1,
+                }
               : item,
           ),
         };
@@ -77,6 +84,8 @@ export const usePosCartStore = create<PosCartState>((set) => ({
             discountAmount: product.discountAmount,
             promotionId: product.promotionId,
             promotionName: product.promotionName,
+            trackInventory: product.trackInventory,
+            type: product.type,
             stockOnHand: product.stockOnHand,
             qty: 1,
           },
@@ -106,6 +115,8 @@ export const usePosCartStore = create<PosCartState>((set) => ({
           discountAmount: product.discountAmount,
           promotionId: product.promotionId,
           promotionName: product.promotionName,
+          trackInventory: product.trackInventory,
+          type: product.type,
           stockOnHand: product.stockOnHand,
         };
 
@@ -115,6 +126,8 @@ export const usePosCartStore = create<PosCartState>((set) => ({
           nextItem.discountAmount !== item.discountAmount ||
           nextItem.promotionId !== item.promotionId ||
           nextItem.promotionName !== item.promotionName ||
+          nextItem.trackInventory !== item.trackInventory ||
+          nextItem.type !== item.type ||
           nextItem.stockOnHand !== item.stockOnHand
         ) {
           hasChanges = true;
@@ -131,7 +144,9 @@ export const usePosCartStore = create<PosCartState>((set) => ({
         item.productId === productId
           ? {
               ...item,
-              qty: Math.min(item.stockOnHand, Math.max(1, Math.floor(qty || 1))),
+              qty: item.trackInventory
+                ? Math.min(item.stockOnHand, Math.max(1, Math.floor(qty || 1)))
+                : Math.max(1, Math.floor(qty || 1)),
             }
           : item,
       ),
@@ -140,7 +155,12 @@ export const usePosCartStore = create<PosCartState>((set) => ({
     set((state) => ({
       items: state.items.map((item) =>
         item.productId === productId
-          ? { ...item, qty: Math.min(item.stockOnHand, item.qty + 1) }
+          ? {
+              ...item,
+              qty: item.trackInventory
+                ? Math.min(item.stockOnHand, item.qty + 1)
+                : item.qty + 1,
+            }
           : item,
       ),
     })),

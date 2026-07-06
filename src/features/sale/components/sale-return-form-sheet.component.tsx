@@ -34,7 +34,7 @@ import {
   saleReturnFormSchema,
   type SaleReturnFormValues,
 } from "@/features/sale/schemas/sale-return-form.schema";
-import type { PaymentMethod, SaleEntity } from "@/graphql/generated";
+import type { SaleEntity, SalesReportPaymentMethod } from "@/graphql/generated";
 import { ErrorHelper } from "@/libs/error";
 import { useCreateSaleReturn } from "@/resources/gql/sale.gql";
 
@@ -55,7 +55,9 @@ function formatCurrency(value: number) {
   return currencyFormatter.format(value);
 }
 
-function getDefaultRefundMethod(sale?: SaleEntity | null): PaymentMethod {
+function getDefaultRefundMethod(
+  sale?: SaleEntity | null,
+): SalesReportPaymentMethod {
   return sale?.payments[0]?.method ?? "CASH";
 }
 

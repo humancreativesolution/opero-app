@@ -65,6 +65,10 @@ export function PurchaseFormSheet({
     filter: { type: "WAREHOUSE" },
   });
   const productsQuery = useProducts({ limit: 100 });
+  const stockProducts = useMemo(
+    () => (productsQuery.data?.data ?? []).filter((product) => product.trackInventory),
+    [productsQuery.data?.data],
+  );
   const form = useForm<PurchaseFormValues>({
     resolver: zodResolver(purchaseFormSchema),
     defaultValues,
@@ -226,7 +230,7 @@ export function PurchaseFormSheet({
                               {...field}
                             >
                               <option value="">Select product</option>
-                              {(productsQuery.data?.data ?? []).map((product) => (
+                              {stockProducts.map((product) => (
                                 <option key={product.id} value={product.id}>
                                   {product.name}
                                 </option>

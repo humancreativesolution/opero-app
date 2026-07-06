@@ -19,6 +19,8 @@ const GET_PRODUCTS = /* GraphQL */ `
         sku
         barcode
         name
+        type
+        trackInventory
         sellingPrice
         lastCostPrice
         isActive
@@ -44,6 +46,8 @@ const CREATE_PRODUCT = /* GraphQL */ `
       sku
       barcode
       name
+      type
+      trackInventory
       sellingPrice
       lastCostPrice
       isActive
@@ -60,6 +64,8 @@ const UPDATE_PRODUCT = /* GraphQL */ `
       sku
       barcode
       name
+      type
+      trackInventory
       sellingPrice
       lastCostPrice
       isActive
@@ -77,6 +83,8 @@ const GET_POS_PRODUCTS = /* GraphQL */ `
         sku
         barcode
         name
+        type
+        trackInventory
         originalPrice
         sellingPrice
         discountAmount

@@ -4,6 +4,7 @@ import {
   CreditCard,
   Minus,
   Plus,
+  Printer,
   Search,
   ShoppingCart,
   Trash2,
@@ -14,9 +15,17 @@ import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { CloseCashierShiftSheet } from "@/features/cashier-shift/components/close-cashier-shift-sheet.component";
 import { OpenCashierShiftSheet } from "@/features/cashier-shift/components/open-cashier-shift-sheet.component";
-import type { PaymentMethod } from "@/graphql/generated";
+import type { SalesReportPaymentMethod } from "@/graphql/generated";
 import { Input } from "@/components/ui/input";
 import { Separator } from "@/components/ui/separator";
 import { ErrorHelper } from "@/libs/error";
@@ -42,9 +51,12 @@ export default function PosPage() {
   const deferredSearch = useDeferredValue(search);
   const [locationId, setLocationId] = useState("");
   const [paidAmount, setPaidAmount] = useState(0);
-  const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("CASH");
+  const [paymentMethod, setPaymentMethod] = useState<SalesReportPaymentMethod>(
+    "CASH",
+  );
   const [openShiftSheetOpen, setOpenShiftSheetOpen] = useState(false);
   const [closeShiftSheetOpen, setCloseShiftSheetOpen] = useState(false);
+  const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const locationsQuery = useLocations({
     limit: 100,
     filter: { type: "OUTLET" },
@@ -116,8 +128,34 @@ export default function PosPage() {
 
     return Math.max(0, previewPricing.subtotal - previewPricing.totalAmount);
   }, [previewPricing]);
+  const orderSummaryItems = useMemo(
+    () =>
+      items.map((item) => {
+        const previewItem = previewItemMap.get(item.productId);
+        const sellingPrice = previewItem?.sellingPrice ?? item.sellingPrice;
+        const originalPrice = previewItem?.originalPrice ?? item.originalPrice;
+        const discountAmount = previewItem?.discountAmount ?? item.discountAmount;
+        const promotionName = previewItem?.promotionName ?? item.promotionName;
 
-  async function handleCheckout() {
+        return {
+          productId: item.productId,
+          name: item.name,
+          qty: item.qty,
+          sellingPrice,
+          originalPrice,
+          discountAmount,
+          promotionName,
+          lineSubtotal: previewItem?.lineSubtotal ?? item.qty * sellingPrice,
+          hasDiscount:
+            Boolean(previewItem?.promotionId ?? item.promotionId) ||
+            discountAmount > 0 ||
+            sellingPrice < originalPrice,
+        };
+      }),
+    [items, previewItemMap],
+  );
+
+  function handleCheckout() {
     if (!selectedLocationId) {
       toast.error("Outlet is required");
       return;
@@ -134,6 +172,25 @@ export default function PosPage() {
       return;
     }
 
+    if (previewPricingQuery.isLoading || previewPricingQuery.isFetching) {
+      toast.error("Pricing is still updating");
+      return;
+    }
+
+    if (previewPricing?.isStockSufficient === false) {
+      toast.error("Some items exceed available stock");
+      return;
+    }
+
+    if (paidAmount < totalAmount) {
+      toast.error("Paid amount is not enough");
+      return;
+    }
+
+    setCheckoutDialogOpen(true);
+  }
+
+  async function handleSaveAndPrint() {
     try {
       const result = await createSale.mutateAsync({
         locationId: selectedLocationId,
@@ -153,6 +210,7 @@ export default function PosPage() {
       toast.success("Sale created", {
         description: result.createSale.invoiceNo,
       });
+      setCheckoutDialogOpen(false);
       clear();
       setPaidAmount(0);
       setPaymentMethod("CASH");
@@ -204,8 +262,10 @@ export default function PosPage() {
             </Card>
           ) : (
             posProducts.map((product) => {
-              const isOutOfStock = product.stockOnHand <= 0;
+              const isOutOfStock =
+                product.trackInventory && product.stockOnHand <= 0;
               const isProductDisabled = isOutOfStock || !hasOpenShift;
+              const isService = product.type === "SERVICE";
 
               return (
               <Card
@@ -231,11 +291,16 @@ export default function PosPage() {
                 <CardHeader>
                   <div className="flex items-start justify-between gap-3">
                     <CardTitle className="text-base">{product.name}</CardTitle>
-                    {isOutOfStock ? (
-                      <Badge variant="outline">Out of stock</Badge>
-                    ) : !hasOpenShift ? (
-                      <Badge variant="outline">Shift closed</Badge>
-                    ) : null}
+                    <div className="flex flex-wrap justify-end gap-1">
+                      {isService ? (
+                        <Badge variant="secondary">Service</Badge>
+                      ) : null}
+                      {isOutOfStock ? (
+                        <Badge variant="outline">Out of stock</Badge>
+                      ) : !hasOpenShift ? (
+                        <Badge variant="outline">Shift closed</Badge>
+                      ) : null}
+                    </div>
                   </div>
                 </CardHeader>
                 <CardContent>
@@ -248,7 +313,10 @@ export default function PosPage() {
                     {product.barcode || product.sku || "No barcode/SKU"}
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Stock: {product.stockOnHand} · {product.locationName}
+                    {product.trackInventory
+                      ? `Stock: ${product.stockOnHand}`
+                      : "Non-stock"}{" "}
+                    · {product.locationName}
                   </p>
                 </CardContent>
               </Card>
@@ -291,7 +359,7 @@ export default function PosPage() {
                     previewItem?.lineSubtotal ??
                     item.qty * displaySellingPrice;
                   const isStockSufficient =
-                    previewItem?.isStockSufficient ?? true;
+                    item.trackInventory ? previewItem?.isStockSufficient ?? true : true;
                   const availableStock =
                     previewItem?.availableStock ?? item.stockOnHand;
                   const hasDiscount =
@@ -304,6 +372,11 @@ export default function PosPage() {
                 <div className="flex items-start justify-between gap-3">
                   <div>
                     <p className="font-medium">{item.name}</p>
+                    {item.type === "SERVICE" ? (
+                      <Badge className="mb-1" variant="secondary">
+                        Service
+                      </Badge>
+                    ) : null}
                     <div className="flex flex-wrap items-center gap-2 text-sm">
                       <span className="text-muted-foreground">
                         {formatCurrency(displaySellingPrice)}
@@ -321,7 +394,11 @@ export default function PosPage() {
                       </p>
                     ) : null}
                     <div className="space-y-0.5 text-xs text-muted-foreground">
-                      <p>Stock: {availableStock}</p>
+                      <p>
+                        {item.trackInventory
+                          ? `Stock: ${availableStock}`
+                          : "Non-stock"}
+                      </p>
                       {!isStockSufficient ? (
                         <p className="text-destructive">
                           Requested qty exceeds available stock.
@@ -459,7 +536,7 @@ export default function PosPage() {
             <select
               className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
               onChange={(event) =>
-                setPaymentMethod(event.target.value as PaymentMethod)
+                setPaymentMethod(event.target.value as SalesReportPaymentMethod)
               }
               value={paymentMethod}
             >
@@ -528,6 +605,7 @@ export default function PosPage() {
               !selectedLocationId ||
               !hasOpenShift ||
               previewPricingQuery.isLoading ||
+              previewPricingQuery.isFetching ||
               previewPricing?.isStockSufficient === false ||
               paidAmount < totalAmount
             }
@@ -551,6 +629,110 @@ export default function PosPage() {
         open={closeShiftSheetOpen}
         shift={currentShift}
       />
+
+      <Dialog onOpenChange={setCheckoutDialogOpen} open={checkoutDialogOpen}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Checkout summary</DialogTitle>
+            <DialogDescription>
+              Review the order before saving the sale.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4">
+            <div className="grid gap-2 rounded-lg border p-3 text-sm">
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Outlet</span>
+                <span className="font-medium">
+                  {selectedLocation?.name ?? "-"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Payment</span>
+                <span className="font-medium">{paymentMethod}</span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Paid amount</span>
+                <span className="font-medium">{formatCurrency(paidAmount)}</span>
+              </div>
+            </div>
+
+            <div className="max-h-72 space-y-2 overflow-y-auto">
+              {orderSummaryItems.map((item) => (
+                <div
+                  className="grid gap-2 rounded-lg border p-3 text-sm"
+                  key={item.productId}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div>
+                      <p className="font-medium">{item.name}</p>
+                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                        <span>
+                          {item.qty} x {formatCurrency(item.sellingPrice)}
+                        </span>
+                        {item.hasDiscount ? (
+                          <span className="line-through">
+                            {formatCurrency(item.originalPrice)}
+                          </span>
+                        ) : null}
+                      </div>
+                      {item.hasDiscount ? (
+                        <p className="text-xs text-primary">
+                          {item.promotionName ?? "Promo"} · -
+                          {formatCurrency(item.discountAmount)}
+                        </p>
+                      ) : null}
+                    </div>
+                    <span className="font-semibold">
+                      {formatCurrency(item.lineSubtotal)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="space-y-1 rounded-lg border bg-muted/30 p-3 text-sm">
+              {previewPricing ? (
+                <>
+                  <div className="flex items-center justify-between text-muted-foreground">
+                    <span>Subtotal</span>
+                    <span>{formatCurrency(previewPricing.subtotal)}</span>
+                  </div>
+                  {totalDiscount > 0 ? (
+                    <div className="flex items-center justify-between text-muted-foreground">
+                      <span>Discount</span>
+                      <span>-{formatCurrency(totalDiscount)}</span>
+                    </div>
+                  ) : null}
+                </>
+              ) : null}
+              <div className="flex items-center justify-between font-semibold">
+                <span>Total</span>
+                <span>{formatCurrency(totalAmount)}</span>
+              </div>
+              <div className="flex items-center justify-between text-muted-foreground">
+                <span>Change</span>
+                <span>{formatCurrency(changeAmount)}</span>
+              </div>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button
+              disabled={createSale.isPending}
+              onClick={() => setCheckoutDialogOpen(false)}
+              type="button"
+              variant="outline"
+            >
+              Cancel
+            </Button>
+            <Button disabled={createSale.isPending} onClick={handleSaveAndPrint}>
+              <Printer className="size-4" />
+              {createSale.isPending ? "Saving..." : "Save & Print"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
