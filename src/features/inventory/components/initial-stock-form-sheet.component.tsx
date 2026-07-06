@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, Trash2 } from "lucide-react";
+import { useMemo } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -49,6 +50,10 @@ export function InitialStockFormSheet({
   const setInitialStock = useSetInitialStock();
   const locationsQuery = useLocations({ limit: 100 });
   const productsQuery = useProducts({ limit: 100 });
+  const stockProducts = useMemo(
+    () => (productsQuery.data?.data ?? []).filter((product) => product.trackInventory),
+    [productsQuery.data?.data],
+  );
   const form = useForm<InitialStockFormValues>({
     resolver: zodResolver(initialStockFormSchema),
     defaultValues,
@@ -165,7 +170,7 @@ export function InitialStockFormSheet({
                               {...field}
                             >
                               <option value="">Select product</option>
-                              {(productsQuery.data?.data ?? []).map((product) => (
+                              {stockProducts.map((product) => (
                                 <option key={product.id} value={product.id}>
                                   {product.name}
                                 </option>

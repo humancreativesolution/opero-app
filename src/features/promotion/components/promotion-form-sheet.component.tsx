@@ -185,15 +185,20 @@ function ProductMultiSelect({
                       onSelect={() => toggleProduct(product.id)}
                       value={`${product.name} ${product.sku ?? ""} ${
                         product.barcode ?? ""
-                      }`}
+                      } ${product.type}`}
                     >
                       <Check
                         className={
                           isSelected ? "size-4 opacity-100" : "size-4 opacity-0"
                         }
                       />
-                      <div className="min-w-0">
-                        <p className="truncate">{product.name}</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2">
+                          <p className="truncate">{product.name}</p>
+                          <Badge variant="outline">
+                            {product.type === "SERVICE" ? "Service" : "Stock"}
+                          </Badge>
+                        </div>
                         <p className="text-xs text-muted-foreground">
                           {product.barcode || product.sku || "No barcode/SKU"}
                         </p>
@@ -212,6 +217,9 @@ function ProductMultiSelect({
           {selectedProducts.map((product) => (
             <Badge className="gap-1" key={product.id} variant="secondary">
               {product.name}
+              <span className="text-muted-foreground">
+                {product.type === "SERVICE" ? "Service" : "Stock"}
+              </span>
               <button
                 onClick={() => toggleProduct(product.id)}
                 type="button"

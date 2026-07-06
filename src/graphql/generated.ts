@@ -81,6 +81,7 @@ export type CreateProductInput = {
   name: Scalars['String']['input'];
   sellingPrice: Scalars['Float']['input'];
   sku?: InputMaybe<Scalars['String']['input']>;
+  type?: ProductType;
 };
 
 export type CreatePromotionInput = {
@@ -506,6 +507,18 @@ export type PaginatedSales = {
   meta: PaginationMeta;
 };
 
+export type PaginatedSalesReportItems = {
+  __typename?: 'PaginatedSalesReportItems';
+  data: Array<SalesReportItemEntity>;
+  meta: PaginationMeta;
+};
+
+export type PaginatedSalesReportTransactions = {
+  __typename?: 'PaginatedSalesReportTransactions';
+  data: Array<SalesReportTransactionEntity>;
+  meta: PaginationMeta;
+};
+
 export type PaginatedSuppliers = {
   __typename?: 'PaginatedSuppliers';
   data: Array<SupplierEntity>;
@@ -534,20 +547,11 @@ export type PaginationMeta = {
   totalPages: Scalars['Int']['output'];
 };
 
-/** Manual payment method for sales transaction */
-export const PaymentMethod = {
-  Card: 'CARD',
-  Cash: 'CASH',
-  Qris: 'QRIS',
-  Transfer: 'TRANSFER'
-} as const;
-
-export type PaymentMethod = typeof PaymentMethod[keyof typeof PaymentMethod];
 export type PaymentMethodSummary = {
   __typename?: 'PaymentMethodSummary';
   amount: Scalars['Float']['output'];
   count: Scalars['Int']['output'];
-  method: PaymentMethod;
+  method: SalesReportPaymentMethod;
 };
 
 export type PosProduct = {
@@ -565,6 +569,8 @@ export type PosProduct = {
   sellingPrice: Scalars['Float']['output'];
   sku?: Maybe<Scalars['String']['output']>;
   stockOnHand: Scalars['Int']['output'];
+  trackInventory: Scalars['Boolean']['output'];
+  type: ProductType;
 };
 
 export type PosProductFilterInput = {
@@ -591,9 +597,18 @@ export type ProductEntity = {
   sellingPrice: Scalars['Float']['output'];
   sku?: Maybe<Scalars['String']['output']>;
   tenantId: Scalars['String']['output'];
+  trackInventory: Scalars['Boolean']['output'];
+  type: ProductType;
   updatedAt: Scalars['DateTime']['output'];
 };
 
+/** Catalog item type */
+export const ProductType = {
+  Service: 'SERVICE',
+  Stock: 'STOCK'
+} as const;
+
+export type ProductType = typeof ProductType[keyof typeof ProductType];
 export const PromotionChannel = {
   All: 'ALL',
   Pos: 'POS',
@@ -716,6 +731,11 @@ export type Query = {
   purchases: Array<PurchaseEntity>;
   sale?: Maybe<SaleEntity>;
   sales: PaginatedSales;
+  salesReportItems: PaginatedSalesReportItems;
+  salesReportItemsCsv: Scalars['String']['output'];
+  salesReportSummary: SalesReportSummaryEntity;
+  salesReportTransactions: PaginatedSalesReportTransactions;
+  salesReportTransactionsCsv: Scalars['String']['output'];
   supplier?: Maybe<SupplierEntity>;
   suppliers: PaginatedSuppliers;
   suppliersByTenant: Array<SupplierEntity>;
@@ -837,6 +857,35 @@ export type QuerySalesArgs = {
 };
 
 
+export type QuerySalesReportItemsArgs = {
+  filter?: InputMaybe<SalesReportFilterInput>;
+  limit?: Scalars['Int']['input'];
+  page?: Scalars['Int']['input'];
+};
+
+
+export type QuerySalesReportItemsCsvArgs = {
+  filter?: InputMaybe<SalesReportFilterInput>;
+};
+
+
+export type QuerySalesReportSummaryArgs = {
+  filter?: InputMaybe<SalesReportFilterInput>;
+};
+
+
+export type QuerySalesReportTransactionsArgs = {
+  filter?: InputMaybe<SalesReportFilterInput>;
+  limit?: Scalars['Int']['input'];
+  page?: Scalars['Int']['input'];
+};
+
+
+export type QuerySalesReportTransactionsCsvArgs = {
+  filter?: InputMaybe<SalesReportFilterInput>;
+};
+
+
 export type QuerySupplierArgs = {
   id: Scalars['String']['input'];
 };
@@ -950,7 +999,7 @@ export type SalePaymentEntity = {
   amount: Scalars['Float']['output'];
   createdAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
-  method: PaymentMethod;
+  method: SalesReportPaymentMethod;
   notes?: Maybe<Scalars['String']['output']>;
   provider?: Maybe<Scalars['String']['output']>;
   referenceNo?: Maybe<Scalars['String']['output']>;
@@ -958,7 +1007,7 @@ export type SalePaymentEntity = {
 
 export type SalePaymentInput = {
   amount: Scalars['Float']['input'];
-  method: PaymentMethod;
+  method: SalesReportPaymentMethod;
   notes?: InputMaybe<Scalars['String']['input']>;
   provider?: InputMaybe<Scalars['String']['input']>;
   referenceNo?: InputMaybe<Scalars['String']['input']>;
@@ -967,6 +1016,7 @@ export type SalePaymentInput = {
 export type SalePricingPreviewDiscountEntity = {
   __typename?: 'SalePricingPreviewDiscountEntity';
   amount: Scalars['Float']['output'];
+  id: Scalars['ID']['output'];
   name: Scalars['String']['output'];
   promotionId?: Maybe<Scalars['ID']['output']>;
 };
@@ -996,10 +1046,11 @@ export type SalePricingPreviewItemEntity = {
   promotionName?: Maybe<Scalars['String']['output']>;
   qty: Scalars['Int']['output'];
   sellingPrice: Scalars['Float']['output'];
+  trackInventory: Scalars['Boolean']['output'];
 };
 
 export type SaleRefundPaymentInput = {
-  method: PaymentMethod;
+  method: SalesReportPaymentMethod;
   notes?: InputMaybe<Scalars['String']['input']>;
   provider?: InputMaybe<Scalars['String']['input']>;
   referenceNo?: InputMaybe<Scalars['String']['input']>;
@@ -1024,6 +1075,84 @@ export const SaleType = {
 } as const;
 
 export type SaleType = typeof SaleType[keyof typeof SaleType];
+export type SalesReportFilterInput = {
+  cashierShiftId?: InputMaybe<Scalars['ID']['input']>;
+  cashierUserId?: InputMaybe<Scalars['ID']['input']>;
+  dateFrom?: InputMaybe<Scalars['String']['input']>;
+  dateTo?: InputMaybe<Scalars['String']['input']>;
+  locationId?: InputMaybe<Scalars['ID']['input']>;
+  paymentMethod?: InputMaybe<SalesReportPaymentMethod>;
+  saleType?: InputMaybe<SaleType>;
+  search?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type SalesReportItemEntity = {
+  __typename?: 'SalesReportItemEntity';
+  barcode?: Maybe<Scalars['String']['output']>;
+  cogs: Scalars['Float']['output'];
+  discountTotal: Scalars['Float']['output'];
+  grossProfit: Scalars['Float']['output'];
+  grossSales: Scalars['Float']['output'];
+  netSales: Scalars['Float']['output'];
+  productId: Scalars['ID']['output'];
+  productName: Scalars['String']['output'];
+  qtySold: Scalars['Int']['output'];
+  sku?: Maybe<Scalars['String']['output']>;
+};
+
+export const SalesReportPaymentMethod = {
+  Card: 'CARD',
+  Cash: 'CASH',
+  Qris: 'QRIS',
+  Transfer: 'TRANSFER'
+} as const;
+
+export type SalesReportPaymentMethod = typeof SalesReportPaymentMethod[keyof typeof SalesReportPaymentMethod];
+export type SalesReportSummaryEntity = {
+  __typename?: 'SalesReportSummaryEntity';
+  cogs: Scalars['Float']['output'];
+  grossProfit: Scalars['Float']['output'];
+  grossSales: Scalars['Float']['output'];
+  itemDiscountTotal: Scalars['Float']['output'];
+  itemQtySold: Scalars['Int']['output'];
+  netSales: Scalars['Float']['output'];
+  returnAmount: Scalars['Float']['output'];
+  returnCount: Scalars['Int']['output'];
+  saleCount: Scalars['Int']['output'];
+  totalDiscount: Scalars['Float']['output'];
+  transactionCount: Scalars['Int']['output'];
+  transactionDiscountTotal: Scalars['Float']['output'];
+};
+
+export type SalesReportTransactionEntity = {
+  __typename?: 'SalesReportTransactionEntity';
+  cashierName?: Maybe<Scalars['String']['output']>;
+  cashierShiftId?: Maybe<Scalars['ID']['output']>;
+  cashierUserId?: Maybe<Scalars['ID']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  grossAmount: Scalars['Float']['output'];
+  grossProfit: Scalars['Float']['output'];
+  id: Scalars['ID']['output'];
+  invoiceNo: Scalars['String']['output'];
+  itemCount: Scalars['Int']['output'];
+  itemDiscountTotal: Scalars['Float']['output'];
+  locationId: Scalars['ID']['output'];
+  locationName: Scalars['String']['output'];
+  paidAmount: Scalars['Float']['output'];
+  payments: Array<SalesReportTransactionPaymentEntity>;
+  totalAmount: Scalars['Float']['output'];
+  totalQty: Scalars['Int']['output'];
+  transactionDiscountTotal: Scalars['Float']['output'];
+  type: SaleType;
+};
+
+export type SalesReportTransactionPaymentEntity = {
+  __typename?: 'SalesReportTransactionPaymentEntity';
+  amount: Scalars['Float']['output'];
+  id: Scalars['ID']['output'];
+  method: SalesReportPaymentMethod;
+};
+
 export type SalesSummary = {
   __typename?: 'SalesSummary';
   grossProfit: Scalars['Float']['output'];
@@ -1093,6 +1222,7 @@ export type UpdateProductInput = {
   name?: InputMaybe<Scalars['String']['input']>;
   sellingPrice?: InputMaybe<Scalars['Float']['input']>;
   sku?: InputMaybe<Scalars['String']['input']>;
+  type?: InputMaybe<ProductType>;
 };
 
 export type UpdatePromotionInput = {
