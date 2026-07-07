@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Boxes,
+  ClipboardCheck,
   Home,
   MapPin,
   Package,
@@ -12,6 +13,7 @@ import {
   Tag,
   Truck,
   Users,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
@@ -76,10 +78,22 @@ const menuGroups: MenuGroup[] = [
         },
       },
       {
+        label: "Cashier Shifts",
+        path: "/cashier-shifts",
+        icon: ReceiptText,
+        permissions: { anyOf: [PERMISSIONS.reports.view] },
+      },
+      {
         label: "Promotions",
         path: "/promotions",
         icon: Tag,
         permissions: { anyOf: [PERMISSIONS.promotions.read] },
+      },
+      {
+        label: "Customers",
+        path: "/customers",
+        icon: UsersRound,
+        permissions: { anyOf: [PERMISSIONS.customers.read] },
       },
     ],
   },
@@ -96,6 +110,12 @@ const menuGroups: MenuGroup[] = [
         label: "Inventory",
         path: "/inventory",
         icon: Boxes,
+        permissions: { anyOf: [PERMISSIONS.stock.read] },
+      },
+      {
+        label: "Stock Opname",
+        path: "/stock-opnames",
+        icon: ClipboardCheck,
         permissions: { anyOf: [PERMISSIONS.stock.read] },
       },
       {
