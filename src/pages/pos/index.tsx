@@ -36,6 +36,7 @@ import { useCurrentCashierShift } from "@/resources/gql/cashier-shift.gql";
 import { useCustomersByTenant } from "@/resources/gql/customer.gql";
 import { useLocations } from "@/resources/gql/location.gql";
 import { usePosProducts } from "@/resources/gql/product.gql";
+import { useReceiptConfiguration } from "@/resources/gql/receipt-configuration.gql";
 import { useCreateSale, usePreviewSalePricing } from "@/resources/gql/sale.gql";
 import { usePosCartStore } from "@/stores/pos-cart.store";
 
@@ -91,7 +92,11 @@ export default function PosPage() {
     (customer) => customer.id === customerId,
   );
   const currentShiftQuery = useCurrentCashierShift(selectedLocationId);
+  const receiptConfigQuery = useReceiptConfiguration(
+    selectedLocationId || undefined,
+  );
   const currentShift = currentShiftQuery.data;
+  const receiptConfig = receiptConfigQuery.data;
   const hasOpenShift = Boolean(currentShift);
   const searchKeyword = deferredSearch.trim();
   const posProductFilter = useMemo(
@@ -678,7 +683,7 @@ export default function PosPage() {
       />
 
       <Dialog onOpenChange={setCheckoutDialogOpen} open={checkoutDialogOpen}>
-        <DialogContent className="sm:max-w-lg">
+        <DialogContent className="sm:max-w-5xl">
           <DialogHeader>
             <DialogTitle>Checkout summary</DialogTitle>
             <DialogDescription>
@@ -686,87 +691,159 @@ export default function PosPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-4">
-            <div className="grid gap-2 rounded-lg border p-3 text-sm">
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Outlet</span>
-                <span className="font-medium">
-                  {selectedLocation?.name ?? "-"}
-                </span>
+          <div className="grid gap-4 lg:grid-cols-[1fr_20rem]">
+            <div className="space-y-4">
+              <div className="grid gap-2 rounded-lg border p-3 text-sm">
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Outlet</span>
+                  <span className="font-medium">
+                    {selectedLocation?.name ?? "-"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Customer</span>
+                  <span className="font-medium">
+                    {selectedCustomer?.name ?? "Walk-in customer"}
+                  </span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Payment</span>
+                  <span className="font-medium">{paymentMethod}</span>
+                </div>
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-muted-foreground">Paid amount</span>
+                  <span className="font-medium">{formatCurrency(paidAmount)}</span>
+                </div>
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Customer</span>
-                <span className="font-medium">
-                  {selectedCustomer?.name ?? "Walk-in customer"}
-                </span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Payment</span>
-                <span className="font-medium">{paymentMethod}</span>
-              </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-muted-foreground">Paid amount</span>
-                <span className="font-medium">{formatCurrency(paidAmount)}</span>
-              </div>
-            </div>
 
-            <div className="max-h-72 space-y-2 overflow-y-auto">
-              {orderSummaryItems.map((item) => (
-                <div
-                  className="grid gap-2 rounded-lg border p-3 text-sm"
-                  key={item.productId}
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div>
-                      <p className="font-medium">{item.name}</p>
-                      <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                        <span>
-                          {item.qty} x {formatCurrency(item.sellingPrice)}
-                        </span>
-                        {item.hasDiscount ? (
-                          <span className="line-through">
-                            {formatCurrency(item.originalPrice)}
+              <div className="max-h-72 space-y-2 overflow-y-auto">
+                {orderSummaryItems.map((item) => (
+                  <div
+                    className="grid gap-2 rounded-lg border p-3 text-sm"
+                    key={item.productId}
+                  >
+                    <div className="flex items-start justify-between gap-3">
+                      <div>
+                        <p className="font-medium">{item.name}</p>
+                        <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                          <span>
+                            {item.qty} x {formatCurrency(item.sellingPrice)}
                           </span>
+                          {item.hasDiscount ? (
+                            <span className="line-through">
+                              {formatCurrency(item.originalPrice)}
+                            </span>
+                          ) : null}
+                        </div>
+                        {item.hasDiscount ? (
+                          <p className="text-xs text-primary">
+                            {item.promotionName ?? "Promo"} · -
+                            {formatCurrency(item.discountAmount)}
+                          </p>
                         ) : null}
                       </div>
-                      {item.hasDiscount ? (
-                        <p className="text-xs text-primary">
-                          {item.promotionName ?? "Promo"} · -
-                          {formatCurrency(item.discountAmount)}
-                        </p>
-                      ) : null}
+                      <span className="font-semibold">
+                        {formatCurrency(item.lineSubtotal)}
+                      </span>
                     </div>
-                    <span className="font-semibold">
-                      {formatCurrency(item.lineSubtotal)}
-                    </span>
                   </div>
+                ))}
+              </div>
+
+              <div className="space-y-1 rounded-lg border bg-muted/30 p-3 text-sm">
+                {previewPricing ? (
+                  <>
+                    <div className="flex items-center justify-between text-muted-foreground">
+                      <span>Subtotal</span>
+                      <span>{formatCurrency(previewPricing.subtotal)}</span>
+                    </div>
+                    {totalDiscount > 0 ? (
+                      <div className="flex items-center justify-between text-muted-foreground">
+                        <span>Discount</span>
+                        <span>-{formatCurrency(totalDiscount)}</span>
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
+                <div className="flex items-center justify-between font-semibold">
+                  <span>Total</span>
+                  <span>{formatCurrency(totalAmount)}</span>
                 </div>
-              ))}
+                <div className="flex items-center justify-between text-muted-foreground">
+                  <span>Change</span>
+                  <span>{formatCurrency(changeAmount)}</span>
+                </div>
+              </div>
             </div>
 
-            <div className="space-y-1 rounded-lg border bg-muted/30 p-3 text-sm">
-              {previewPricing ? (
-                <>
-                  <div className="flex items-center justify-between text-muted-foreground">
-                    <span>Subtotal</span>
-                    <span>{formatCurrency(previewPricing.subtotal)}</span>
+            <div className="rounded-lg border bg-white p-4 font-mono text-xs text-slate-950">
+              <div className="text-center">
+                <p className="font-bold">
+                  {receiptConfig?.storeName ?? selectedLocation?.name ?? "Store"}
+                </p>
+                {receiptConfig?.address ? <p>{receiptConfig.address}</p> : null}
+                {receiptConfig?.phone ? <p>{receiptConfig.phone}</p> : null}
+              </div>
+              <div className="my-3 border-t border-dashed border-slate-400" />
+              <div className="space-y-1">
+                <div className="flex justify-between gap-4">
+                  <span>Invoice</span>
+                  <span>After save</span>
+                </div>
+                {receiptConfig?.showCashierName !== false ? (
+                  <div className="flex justify-between gap-4">
+                    <span>Cashier</span>
+                    <span>{currentShift?.openedByUserName ?? "-"}</span>
                   </div>
-                  {totalDiscount > 0 ? (
-                    <div className="flex items-center justify-between text-muted-foreground">
-                      <span>Discount</span>
-                      <span>-{formatCurrency(totalDiscount)}</span>
+                ) : null}
+                {receiptConfig?.showShiftCode !== false ? (
+                  <div className="flex justify-between gap-4">
+                    <span>Shift</span>
+                    <span>{currentShift?.id.slice(0, 8) ?? "-"}</span>
+                  </div>
+                ) : null}
+              </div>
+              <div className="my-3 border-t border-dashed border-slate-400" />
+              <div className="space-y-2">
+                {orderSummaryItems.map((item) => (
+                  <div key={item.productId}>
+                    <div className="flex justify-between gap-4">
+                      <span>
+                        {item.name} x{item.qty}
+                      </span>
+                      <span>{formatCurrency(item.lineSubtotal)}</span>
                     </div>
-                  ) : null}
-                </>
+                    {receiptConfig?.showDiscount !== false && item.hasDiscount ? (
+                      <p className="text-slate-500">
+                        Discount: -{formatCurrency(item.discountAmount * item.qty)}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+              <div className="my-3 border-t border-dashed border-slate-400" />
+              <div className="space-y-1">
+                <div className="flex justify-between gap-4 font-bold">
+                  <span>Total</span>
+                  <span>{formatCurrency(totalAmount)}</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span>Paid</span>
+                  <span>{formatCurrency(paidAmount)}</span>
+                </div>
+                <div className="flex justify-between gap-4">
+                  <span>Change</span>
+                  <span>{formatCurrency(changeAmount)}</span>
+                </div>
+              </div>
+              {receiptConfig?.footerText ? (
+                <p className="mt-4 text-center">{receiptConfig.footerText}</p>
               ) : null}
-              <div className="flex items-center justify-between font-semibold">
-                <span>Total</span>
-                <span>{formatCurrency(totalAmount)}</span>
-              </div>
-              <div className="flex items-center justify-between text-muted-foreground">
-                <span>Change</span>
-                <span>{formatCurrency(changeAmount)}</span>
-              </div>
+              {receiptConfig?.returnPolicyText ? (
+                <p className="mt-2 text-center text-slate-500">
+                  {receiptConfig.returnPolicyText}
+                </p>
+              ) : null}
             </div>
           </div>
 
