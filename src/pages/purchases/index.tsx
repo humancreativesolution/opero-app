@@ -1,6 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   CheckCircle2,
+  Edit,
   Loader2,
   MoreVertical,
   PackageCheck,
@@ -38,6 +39,7 @@ import { canAccess } from "@/components/rbac/rbac.utils";
 import type { PurchaseEntity, PurchaseStatus } from "@/graphql/generated";
 import { ErrorHelper } from "@/libs/error";
 import {
+  useCancelPurchase,
   usePurchases,
   useReceivePurchase,
   useUpdatePurchaseStatus,
@@ -104,6 +106,8 @@ export default function PurchasesPage() {
   const [limit] = useState(50);
   const [search, setSearch] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [selectedPurchase, setSelectedPurchase] =
+    useState<PurchaseEntity | null>(null);
   const [statusAction, setStatusAction] =
     useState<PurchaseStatusAction | null>(null);
   const [receivedQtyByItemId, setReceivedQtyByItemId] = useState<
@@ -112,8 +116,11 @@ export default function PurchasesPage() {
   const purchasesQuery = usePurchases({ page, limit });
   const updatePurchaseStatus = useUpdatePurchaseStatus();
   const receivePurchase = useReceivePurchase();
+  const cancelPurchase = useCancelPurchase();
   const isUpdatingStatus =
-    updatePurchaseStatus.isPending || receivePurchase.isPending;
+    updatePurchaseStatus.isPending ||
+    receivePurchase.isPending ||
+    cancelPurchase.isPending;
   const canUpdatePurchase = canAccess({ anyOf: [PERMISSIONS.purchases.update] });
   const filteredPurchases = useMemo(() => {
     const purchases = purchasesQuery.data ?? [];
@@ -155,6 +162,16 @@ export default function PurchasesPage() {
     });
   }
 
+  function handleCreate() {
+    setSelectedPurchase(null);
+    setSheetOpen(true);
+  }
+
+  function handleEdit(purchase: PurchaseEntity) {
+    setSelectedPurchase(purchase);
+    setSheetOpen(true);
+  }
+
   function fillAllReceivedQty() {
     if (!statusAction) {
       return;
@@ -192,6 +209,13 @@ export default function PurchasesPage() {
         toast.success("Purchase received");
         setStatusAction(null);
         setReceivedQtyByItemId({});
+        return;
+      }
+
+      if (statusAction.status === "CANCELLED") {
+        await cancelPurchase.mutateAsync(statusAction.purchase.id);
+        toast.success("Purchase cancelled");
+        setStatusAction(null);
         return;
       }
 
@@ -257,13 +281,15 @@ export default function PurchasesPage() {
         cell: ({ row }) => {
           const purchase = row.original;
           const canConfirm = purchase.status === "DRAFT";
+          const canEdit = purchase.status === "DRAFT";
           const canReceive =
             purchase.status === "CONFIRMED" ||
             purchase.status === "PARTIALLY_RECEIVED";
           const canCancel =
             purchase.status === "DRAFT" || purchase.status === "CONFIRMED";
           const hasActions =
-            canUpdatePurchase && (canConfirm || canReceive || canCancel);
+            canUpdatePurchase &&
+            (canEdit || canConfirm || canReceive || canCancel);
 
           return (
             <div className="text-right">
@@ -275,6 +301,12 @@ export default function PurchasesPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-48">
+                  {canUpdatePurchase && canEdit ? (
+                    <DropdownMenuItem onSelect={() => handleEdit(purchase)}>
+                      <Edit className="size-4" />
+                      Edit draft
+                    </DropdownMenuItem>
+                  ) : null}
                   {canUpdatePurchase && canConfirm ? (
                     <DropdownMenuItem
                       className="text-teal-600 focus:bg-teal-50 focus:text-teal-700 dark:text-teal-400 dark:focus:bg-teal-950/40 dark:focus:text-teal-300"
@@ -345,7 +377,7 @@ export default function PurchasesPage() {
           </p>
         </div>
         <PermissionGate anyOf={[PERMISSIONS.purchases.create]}>
-          <Button onClick={() => setSheetOpen(true)}>
+          <Button onClick={handleCreate}>
             <Plus className="size-4" />
             Create purchase
           </Button>
@@ -380,7 +412,16 @@ export default function PurchasesPage() {
         </CardContent>
       </Card>
 
-      <PurchaseFormSheet onOpenChange={setSheetOpen} open={sheetOpen} />
+      <PurchaseFormSheet
+        onOpenChange={(open) => {
+          setSheetOpen(open);
+          if (!open) {
+            setSelectedPurchase(null);
+          }
+        }}
+        open={sheetOpen}
+        purchase={selectedPurchase}
+      />
 
       <Dialog
         onOpenChange={(open) => {

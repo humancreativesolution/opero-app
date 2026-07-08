@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Edit, Package, Plus, Search } from "lucide-react";
+import { Edit, Eye, Package, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { DataTable } from "@/components/data-table/data-table.component";
@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { ProductDetailSheet } from "@/features/product/components/product-detail-sheet.component";
 import { ProductFormSheet } from "@/features/product/components/product-form-sheet.component";
 import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
 import { PERMISSIONS } from "@/components/rbac/permissions";
@@ -37,9 +38,11 @@ export default function ProductsPage() {
   const [limit, setLimit] = useState(10);
   const [search, setSearch] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [detailSheetOpen, setDetailSheetOpen] = useState(false);
   const [selectedProduct, setSelectedProduct] = useState<ProductEntity | null>(
     null,
   );
+  const [detailProduct, setDetailProduct] = useState<ProductEntity | null>(null);
   const productsQuery = useProducts({ page, limit });
   const canUpdateProduct = canAccess({ anyOf: [PERMISSIONS.products.update] });
   const filteredProducts = useMemo(() => {
@@ -65,6 +68,11 @@ export default function ProductsPage() {
   function handleEdit(product: ProductEntity) {
     setSelectedProduct(product);
     setSheetOpen(true);
+  }
+
+  function handleView(product: ProductEntity) {
+    setDetailProduct(product);
+    setDetailSheetOpen(true);
   }
 
   function handlePageSizeChange(nextLimit: number) {
@@ -147,7 +155,15 @@ export default function ProductsPage() {
         id: "actions",
         header: () => <div className="text-right">Action</div>,
         cell: ({ row }) => (
-          <div className="text-right">
+          <div className="flex justify-end gap-1">
+            <Button
+              onClick={() => handleView(row.original)}
+              size="icon-sm"
+              variant="ghost"
+            >
+              <Eye className="size-4" />
+              <span className="sr-only">View product detail</span>
+            </Button>
             {canUpdateProduct ? (
               <Button
                 onClick={() => handleEdit(row.original)}
@@ -222,6 +238,17 @@ export default function ProductsPage() {
         onOpenChange={setSheetOpen}
         open={sheetOpen}
         product={selectedProduct}
+      />
+
+      <ProductDetailSheet
+        onOpenChange={(open) => {
+          setDetailSheetOpen(open);
+          if (!open) {
+            setDetailProduct(null);
+          }
+        }}
+        open={detailSheetOpen}
+        product={detailProduct}
       />
     </div>
   );
