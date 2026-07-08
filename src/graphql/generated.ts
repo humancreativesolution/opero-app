@@ -444,10 +444,12 @@ export type Mutation = {
   transferStock: Array<InventoryTransactionEntity>;
   updateCustomer: CustomerEntity;
   updateLocation: LocationEntity;
+  updateNumberingConfiguration: NumberingConfigurationEntity;
   updateProduct: ProductEntity;
   updatePromotion: PromotionEntity;
   updatePurchase: PurchaseEntity;
   updatePurchaseStatus: PurchaseEntity;
+  updateReceiptConfiguration: ReceiptConfigurationEntity;
   updateRole: RoleEntity;
   updateStockOpname: StockOpnameEntity;
   updateSupplier: SupplierEntity;
@@ -642,6 +644,11 @@ export type MutationUpdateLocationArgs = {
 };
 
 
+export type MutationUpdateNumberingConfigurationArgs = {
+  input: UpdateNumberingConfigurationInput;
+};
+
+
 export type MutationUpdateProductArgs = {
   updateProductInput: UpdateProductInput;
 };
@@ -659,6 +666,11 @@ export type MutationUpdatePurchaseArgs = {
 
 export type MutationUpdatePurchaseStatusArgs = {
   input: UpdatePurchaseStatusInput;
+};
+
+
+export type MutationUpdateReceiptConfigurationArgs = {
+  input: UpdateReceiptConfigurationInput;
 };
 
 
@@ -691,6 +703,36 @@ export type MutationUpdateUserArgs = {
   updateUserInput: UpdateUserInput;
 };
 
+export type NumberingConfigurationEntity = {
+  __typename?: 'NumberingConfigurationEntity';
+  createdAt: Scalars['DateTime']['output'];
+  documentType: NumberingDocumentType;
+  format: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  padding: Scalars['Int']['output'];
+  prefix: Scalars['String']['output'];
+  resetPeriod: NumberingResetPeriod;
+  tenantId: Scalars['ID']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export const NumberingDocumentType = {
+  PurchaseOrder: 'PURCHASE_ORDER',
+  SaleInvoice: 'SALE_INVOICE',
+  SaleReturn: 'SALE_RETURN',
+  StockOpname: 'STOCK_OPNAME'
+} as const;
+
+export type NumberingDocumentType = typeof NumberingDocumentType[keyof typeof NumberingDocumentType];
+export const NumberingResetPeriod = {
+  Daily: 'DAILY',
+  Monthly: 'MONTHLY',
+  Never: 'NEVER',
+  Yearly: 'YEARLY'
+} as const;
+
+export type NumberingResetPeriod = typeof NumberingResetPeriod[keyof typeof NumberingResetPeriod];
 export type OpenCashierShiftInput = {
   locationId: Scalars['ID']['input'];
   notes?: InputMaybe<Scalars['String']['input']>;
@@ -1036,6 +1078,8 @@ export type Query = {
   locations: PaginatedLocations;
   locationsByTenant: Array<LocationEntity>;
   me: UserResponse;
+  numberingConfiguration: NumberingConfigurationEntity;
+  numberingConfigurations: Array<NumberingConfigurationEntity>;
   permissions: Array<PermissionEntity>;
   posProducts: PaginatedPosProducts;
   previewSalePricing: SalePricingPreviewEntity;
@@ -1048,6 +1092,8 @@ export type Query = {
   promotionsByTenant: Array<PromotionEntity>;
   purchase: PurchaseEntity;
   purchases: Array<PurchaseEntity>;
+  receiptConfiguration: ReceiptConfigurationEntity;
+  receiptConfigurations: Array<ReceiptConfigurationEntity>;
   role?: Maybe<RoleEntity>;
   roles: PaginatedRoles;
   rolesByTenant: Array<RoleEntity>;
@@ -1159,6 +1205,11 @@ export type QueryLocationsByTenantArgs = {
 };
 
 
+export type QueryNumberingConfigurationArgs = {
+  documentType: NumberingDocumentType;
+};
+
+
 export type QueryPosProductsArgs = {
   filter: PosProductFilterInput;
 };
@@ -1210,6 +1261,11 @@ export type QueryPurchaseArgs = {
 export type QueryPurchasesArgs = {
   limit?: Scalars['Int']['input'];
   page?: Scalars['Int']['input'];
+};
+
+
+export type QueryReceiptConfigurationArgs = {
+  locationId?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -1318,6 +1374,27 @@ export type QueryUserArgs = {
 export type QueryUsersArgs = {
   limit?: Scalars['Int']['input'];
   page?: Scalars['Int']['input'];
+};
+
+export type ReceiptConfigurationEntity = {
+  __typename?: 'ReceiptConfigurationEntity';
+  address?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  footerText?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isActive: Scalars['Boolean']['output'];
+  locationId?: Maybe<Scalars['ID']['output']>;
+  locationName?: Maybe<Scalars['String']['output']>;
+  phone?: Maybe<Scalars['String']['output']>;
+  returnPolicyText?: Maybe<Scalars['String']['output']>;
+  showBarcode: Scalars['Boolean']['output'];
+  showCashierName: Scalars['Boolean']['output'];
+  showDiscount: Scalars['Boolean']['output'];
+  showShiftCode: Scalars['Boolean']['output'];
+  showSku: Scalars['Boolean']['output'];
+  storeName: Scalars['String']['output'];
+  tenantId: Scalars['ID']['output'];
+  updatedAt: Scalars['DateTime']['output'];
 };
 
 export type ReceivePurchaseInput = {
@@ -1708,6 +1785,15 @@ export type UpdateLocationInput = {
   type?: InputMaybe<LocationType>;
 };
 
+export type UpdateNumberingConfigurationInput = {
+  documentType: NumberingDocumentType;
+  format: Scalars['String']['input'];
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  padding?: InputMaybe<Scalars['Int']['input']>;
+  prefix: Scalars['String']['input'];
+  resetPeriod?: InputMaybe<NumberingResetPeriod>;
+};
+
 export type UpdateProductInput = {
   barcode?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['String']['input'];
@@ -1750,6 +1836,21 @@ export type UpdatePurchaseInput = {
 export type UpdatePurchaseStatusInput = {
   id: Scalars['ID']['input'];
   status: PurchaseStatus;
+};
+
+export type UpdateReceiptConfigurationInput = {
+  address?: InputMaybe<Scalars['String']['input']>;
+  footerText?: InputMaybe<Scalars['String']['input']>;
+  isActive?: InputMaybe<Scalars['Boolean']['input']>;
+  locationId?: InputMaybe<Scalars['ID']['input']>;
+  phone?: InputMaybe<Scalars['String']['input']>;
+  returnPolicyText?: InputMaybe<Scalars['String']['input']>;
+  showBarcode?: InputMaybe<Scalars['Boolean']['input']>;
+  showCashierName?: InputMaybe<Scalars['Boolean']['input']>;
+  showDiscount?: InputMaybe<Scalars['Boolean']['input']>;
+  showShiftCode?: InputMaybe<Scalars['Boolean']['input']>;
+  showSku?: InputMaybe<Scalars['Boolean']['input']>;
+  storeName: Scalars['String']['input'];
 };
 
 export type UpdateRoleInput = {

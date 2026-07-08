@@ -75,7 +75,16 @@ const StaffRoute = withPermission(() => <UsersPage view="staff" />, {
 const RolesRoute = withPermission(() => <UsersPage view="roles" />, {
   anyOf: [PERMISSIONS.roles.read],
 });
-const SettingsRoute = withPermission(SettingsPage, {
+const ReceiptSettingsRoute = withPermission(() => <SettingsPage view="receipt" />, {
+  anyOf: [PERMISSIONS.settings.read, PERMISSIONS.settings.update],
+});
+const NumberingSettingsRoute = withPermission(
+  () => <SettingsPage view="numbering" />,
+  {
+    anyOf: [PERMISSIONS.settings.read, PERMISSIONS.settings.update],
+  },
+);
+const SettingsRoute = withPermission(() => <SettingsPage view="receipt" />, {
   anyOf: [PERMISSIONS.settings.read, PERMISSIONS.settings.update],
 });
 const PosRoute = withPermission(PosPage, {
@@ -114,7 +123,14 @@ const routes = [
           { path: "roles", element: <RolesRoute /> },
         ],
       },
-      { path: "settings", element: <SettingsRoute /> },
+      {
+        path: "settings",
+        children: [
+          { index: true, element: <SettingsRoute /> },
+          { path: "receipt", element: <ReceiptSettingsRoute /> },
+          { path: "numbering", element: <NumberingSettingsRoute /> },
+        ],
+      },
     ],
   },
   {

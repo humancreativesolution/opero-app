@@ -191,11 +191,28 @@ const menuGroups: MenuGroup[] = [
       },
       {
         label: "Settings",
-        path: "/settings",
+        path: "/settings/receipt",
         icon: Settings,
+        matchPath: "/settings",
         permissions: {
           anyOf: [PERMISSIONS.settings.read, PERMISSIONS.settings.update],
         },
+        children: [
+          {
+            label: "Receipt",
+            path: "/settings/receipt",
+            permissions: {
+              anyOf: [PERMISSIONS.settings.read, PERMISSIONS.settings.update],
+            },
+          },
+          {
+            label: "Numbering",
+            path: "/settings/numbering",
+            permissions: {
+              anyOf: [PERMISSIONS.settings.read, PERMISSIONS.settings.update],
+            },
+          },
+        ],
       },
     ],
   },
