@@ -33,6 +33,7 @@ import { Separator } from "@/components/ui/separator";
 import { ErrorHelper } from "@/libs/error";
 import { useDebouncedValue } from "@/hooks/use-debounced-value.hook";
 import { useCurrentCashierShift } from "@/resources/gql/cashier-shift.gql";
+import { useCustomersByTenant } from "@/resources/gql/customer.gql";
 import { useLocations } from "@/resources/gql/location.gql";
 import { usePosProducts } from "@/resources/gql/product.gql";
 import { useCreateSale, usePreviewSalePricing } from "@/resources/gql/sale.gql";
@@ -52,6 +53,7 @@ export default function PosPage() {
   const [search, setSearch] = useState("");
   const deferredSearch = useDeferredValue(search);
   const [locationId, setLocationId] = useState("");
+  const [customerId, setCustomerId] = useState("");
   const [paidAmount, setPaidAmount] = useState(0);
   const [paymentMethod, setPaymentMethod] = useState<SalesReportPaymentMethod>(
     "CASH",
@@ -62,10 +64,15 @@ export default function PosPage() {
   const canCreateTransaction = canAccess({
     anyOf: [PERMISSIONS.pos.transaction],
   });
+  const canReadCustomers = canAccess({ anyOf: [PERMISSIONS.customers.read] });
   const locationsQuery = useLocations({
     limit: 100,
     filter: { type: "OUTLET" },
   });
+  const customersQuery = useCustomersByTenant(
+    { isActive: true },
+    canReadCustomers,
+  );
   const createSale = useCreateSale();
   const {
     items,
@@ -79,6 +86,9 @@ export default function PosPage() {
   const selectedLocationId = locationId || locationsQuery.data?.data[0]?.id || "";
   const selectedLocation = locationsQuery.data?.data.find(
     (location) => location.id === selectedLocationId,
+  );
+  const selectedCustomer = customersQuery.data?.find(
+    (customer) => customer.id === customerId,
   );
   const currentShiftQuery = useCurrentCashierShift(selectedLocationId);
   const currentShift = currentShiftQuery.data;
@@ -199,6 +209,7 @@ export default function PosPage() {
     try {
       const result = await createSale.mutateAsync({
         locationId: selectedLocationId,
+        customerId: customerId || undefined,
         paidAmount,
         payments: [
           {
@@ -217,6 +228,7 @@ export default function PosPage() {
       });
       setCheckoutDialogOpen(false);
       clear();
+      setCustomerId("");
       setPaidAmount(0);
       setPaymentMethod("CASH");
     } catch (error) {
@@ -477,6 +489,28 @@ export default function PosPage() {
             </select>
           </label>
 
+          {canReadCustomers ? (
+            <label className="grid gap-1 text-sm">
+              <span className="text-muted-foreground">Customer</span>
+              <select
+                className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
+                disabled={customersQuery.isLoading}
+                onChange={(event) => setCustomerId(event.target.value)}
+                value={customerId}
+              >
+                <option value="">
+                  {customersQuery.isLoading ? "Loading customers..." : "Walk-in customer"}
+                </option>
+                {(customersQuery.data ?? []).map((customer) => (
+                  <option key={customer.id} value={customer.id}>
+                    {customer.name}
+                    {customer.phone ? ` · ${customer.phone}` : ""}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
           <div className="rounded-lg border bg-muted/30 p-3 text-sm">
             <div className="flex items-start justify-between gap-3">
               <div>
@@ -658,6 +692,12 @@ export default function PosPage() {
                 <span className="text-muted-foreground">Outlet</span>
                 <span className="font-medium">
                   {selectedLocation?.name ?? "-"}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-3">
+                <span className="text-muted-foreground">Customer</span>
+                <span className="font-medium">
+                  {selectedCustomer?.name ?? "Walk-in customer"}
                 </span>
               </div>
               <div className="flex items-center justify-between gap-3">

@@ -26,6 +26,12 @@ export const PERMISSIONS = {
     update: "promotions.update",
     delete: "promotions.delete",
   },
+  customers: {
+    read: "customers.read",
+    create: "customers.create",
+    update: "customers.update",
+    delete: "customers.delete",
+  },
   suppliers: {
     read: "suppliers.read",
     create: "suppliers.create",

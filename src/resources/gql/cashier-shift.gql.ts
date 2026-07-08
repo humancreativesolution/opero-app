@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   CashierShiftEntity,
   CashierShiftFilterInput,
+  CashierShiftReportEntity,
   CloseCashierShiftInput,
   OpenCashierShiftInput,
   PaginatedCashierShifts,
@@ -62,6 +63,46 @@ const GET_CASHIER_SHIFTS = /* GraphQL */ `
   }
 `;
 
+const GET_CASHIER_SHIFT_REPORT = /* GraphQL */ `
+  query GetCashierShiftReport($id: String!) {
+    cashierShiftReport(id: $id) {
+      id
+      locationId
+      locationName
+      openedByUserId
+      openedByUserName
+      closedByUserId
+      closedByUserName
+      status
+      openedAt
+      closedAt
+      openingCash
+      expectedCash
+      countedCash
+      variance
+      transactionCount
+      saleCount
+      returnCount
+      grossSales
+      returnAmount
+      netSales
+      itemDiscountTotal
+      transactionDiscountTotal
+      totalDiscount
+      itemQtySold
+      cogs
+      grossProfit
+      cashPaymentTotal
+      nonCashPaymentTotal
+      paymentsByMethod {
+        method
+        amount
+        count
+      }
+    }
+  }
+`;
+
 const OPEN_CASHIER_SHIFT = /* GraphQL */ `
   ${CASHIER_SHIFT_FIELDS}
   mutation OpenCashierShift($input: OpenCashierShiftInput!) {
@@ -93,6 +134,7 @@ export const cashierShiftKeys = {
   lists: () => [...cashierShiftKeys.all, "list"] as const,
   list: (params: CashierShiftListParams) =>
     [...cashierShiftKeys.lists(), params] as const,
+  report: (id?: string | null) => [...cashierShiftKeys.all, "report", id] as const,
 };
 
 export function useCurrentCashierShift(locationId: string) {
@@ -122,6 +164,19 @@ export function useCashierShifts(params: CashierShiftListParams = {}) {
         queryParams,
       ),
     select: (data) => data.cashierShifts,
+  });
+}
+
+export function useCashierShiftReport(id?: string | null) {
+  return useQuery({
+    enabled: Boolean(id),
+    queryKey: cashierShiftKeys.report(id),
+    queryFn: () =>
+      gqlClient.request<{ cashierShiftReport: CashierShiftReportEntity }>(
+        GET_CASHIER_SHIFT_REPORT,
+        { id },
+      ),
+    select: (data) => data.cashierShiftReport,
   });
 }
 

@@ -19,6 +19,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
 import { PERMISSIONS } from "@/components/rbac/permissions";
+import { useCustomersByTenant } from "@/resources/gql/customer.gql";
 import type { SaleType, SalesReportPaymentMethod } from "@/graphql/generated";
 import { useLocations } from "@/resources/gql/location.gql";
 import {
@@ -95,6 +96,7 @@ export default function ReportsPage() {
   const [paymentMethod, setPaymentMethod] = useState<"" | SalesReportPaymentMethod>(
     "",
   );
+  const [customerId, setCustomerId] = useState("");
   const [cashierUserId, setCashierUserId] = useState("");
   const [cashierShiftId, setCashierShiftId] = useState("");
   const [transactionPage, setTransactionPage] = useState(1);
@@ -103,6 +105,7 @@ export default function ReportsPage() {
   const [itemLimit, setItemLimit] = useState(10);
 
   const locationsQuery = useLocations({ limit: 100 });
+  const customersQuery = useCustomersByTenant({ isActive: true });
   const usersQuery = useGetUsers();
   const exportTransactionsCsv = useExportSalesReportTransactionsCsv();
   const exportItemsCsv = useExportSalesReportItemsCsv();
@@ -113,6 +116,7 @@ export default function ReportsPage() {
       locationId: locationId || undefined,
       saleType: saleType || undefined,
       paymentMethod: paymentMethod || undefined,
+      customerId: customerId || undefined,
       cashierUserId: cashierUserId || undefined,
       cashierShiftId: cashierShiftId.trim() || undefined,
       search: search.trim() || undefined,
@@ -120,6 +124,7 @@ export default function ReportsPage() {
     [
       cashierShiftId,
       cashierUserId,
+      customerId,
       dateFrom,
       dateTo,
       locationId,
@@ -232,6 +237,11 @@ export default function ReportsPage() {
             ) : null}
           </div>
         ),
+      },
+      {
+        accessorKey: "customerName",
+        header: "Customer",
+        cell: ({ row }) => row.original.customerName || "Walk-in",
       },
       {
         accessorKey: "type",
@@ -508,6 +518,22 @@ export default function ReportsPage() {
               <option value="QRIS">QRIS</option>
               <option value="CARD">CARD</option>
               <option value="TRANSFER">TRANSFER</option>
+            </select>
+            <select
+              className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
+              onChange={(event) => {
+                setCustomerId(event.target.value);
+                resetPages();
+              }}
+              value={customerId}
+            >
+              <option value="">All customers</option>
+              {(customersQuery.data ?? []).map((customer) => (
+                <option key={customer.id} value={customer.id}>
+                  {customer.name}
+                  {customer.phone ? ` · ${customer.phone}` : ""}
+                </option>
+              ))}
             </select>
             <select
               className="h-9 rounded-lg border border-input bg-background px-2 text-sm"

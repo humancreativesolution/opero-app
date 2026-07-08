@@ -4,6 +4,7 @@ import type {
   CreatePurchaseInput,
   PurchaseEntity,
   ReceivePurchaseInput,
+  UpdatePurchaseInput,
   UpdatePurchaseStatusInput,
 } from "@/graphql/generated";
 import { ErrorHelper } from "@/libs/error";
@@ -59,11 +60,61 @@ const CREATE_PURCHASE = /* GraphQL */ `
   }
 `;
 
+const UPDATE_PURCHASE = /* GraphQL */ `
+  mutation UpdatePurchase($input: UpdatePurchaseInput!) {
+    updatePurchase(input: $input) {
+      id
+      purchaseNo
+      purchaseDate
+      supplierId
+      supplierName
+      locationId
+      locationName
+      status
+      totalAmount
+      createdAt
+      items {
+        id
+        productId
+        productName
+        qty
+        costPrice
+        subtotal
+      }
+    }
+  }
+`;
+
 const UPDATE_PURCHASE_STATUS = /* GraphQL */ `
   mutation UpdatePurchaseStatus($input: UpdatePurchaseStatusInput!) {
     updatePurchaseStatus(input: $input) {
       id
       status
+    }
+  }
+`;
+
+const CANCEL_PURCHASE = /* GraphQL */ `
+  mutation CancelPurchase($id: String!) {
+    cancelPurchase(id: $id) {
+      id
+      purchaseNo
+      purchaseDate
+      supplierId
+      supplierName
+      locationId
+      locationName
+      status
+      totalAmount
+      createdAt
+      items {
+        id
+        productId
+        productName
+        qty
+        costPrice
+        subtotal
+      }
     }
   }
 `;
@@ -139,6 +190,23 @@ export function useCreatePurchase() {
   });
 }
 
+export function useUpdatePurchase() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: UpdatePurchaseInput) =>
+      gqlClient.request<{ updatePurchase: PurchaseEntity }>(UPDATE_PURCHASE, {
+        input,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: purchaseKeys.lists() });
+    },
+    onError: (error: unknown) => {
+      throw ErrorHelper.parse(error);
+    },
+  });
+}
+
 export function useUpdatePurchaseStatus() {
   const queryClient = useQueryClient();
 
@@ -150,6 +218,23 @@ export function useUpdatePurchaseStatus() {
           input,
         },
       ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: purchaseKeys.lists() });
+    },
+    onError: (error: unknown) => {
+      throw ErrorHelper.parse(error);
+    },
+  });
+}
+
+export function useCancelPurchase() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (id: string) =>
+      gqlClient.request<{ cancelPurchase: PurchaseEntity }>(CANCEL_PURCHASE, {
+        id,
+      }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: purchaseKeys.lists() });
     },

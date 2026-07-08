@@ -6,6 +6,8 @@ import type {
   PaginatedProducts,
   PosProductFilterInput,
   ProductEntity,
+  ProductStockCardEntity,
+  ProductStockCardFilterInput,
   UpdateProductInput,
 } from "@/graphql/generated";
 import { ErrorHelper } from "@/libs/error";
@@ -119,6 +121,33 @@ const GET_POS_PRODUCTS = /* GraphQL */ `
   }
 `;
 
+const GET_PRODUCT_STOCK_CARD = /* GraphQL */ `
+  query GetProductStockCard($filter: ProductStockCardFilterInput!) {
+    productStockCard(filter: $filter) {
+      productId
+      productName
+      sku
+      barcode
+      openingBalance
+      totalQtyIn
+      totalQtyOut
+      closingBalance
+      rows {
+        id
+        createdAt
+        locationId
+        locationName
+        referenceType
+        referenceId
+        transactionType
+        qtyIn
+        qtyOut
+        balanceAfter
+      }
+    }
+  }
+`;
+
 type ProductListParams = {
   page?: number;
   limit?: number;
@@ -131,6 +160,8 @@ export const productKeys = {
   posLists: () => [...productKeys.all, "pos-list"] as const,
   posList: (filter: PosProductFilterInput) =>
     [...productKeys.posLists(), filter] as const,
+  stockCard: (filter: ProductStockCardFilterInput) =>
+    [...productKeys.all, "stock-card", filter] as const,
 };
 
 export function useProducts(params: ProductListParams = {}) {
@@ -157,6 +188,22 @@ export function usePosProducts(filter: PosProductFilterInput) {
         { filter },
       ),
     select: (data) => data.posProducts,
+  });
+}
+
+export function useProductStockCard(
+  filter: ProductStockCardFilterInput,
+  enabled = true,
+) {
+  return useQuery({
+    enabled: enabled && Boolean(filter.productId),
+    queryKey: productKeys.stockCard(filter),
+    queryFn: () =>
+      gqlClient.request<{ productStockCard: ProductStockCardEntity }>(
+        GET_PRODUCT_STOCK_CARD,
+        { filter },
+      ),
+    select: (data) => data.productStockCard,
   });
 }
 

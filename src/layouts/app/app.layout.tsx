@@ -1,6 +1,8 @@
 import {
   BarChart3,
   Boxes,
+  ClipboardCheck,
+  FileSearch,
   Home,
   MapPin,
   Package,
@@ -12,6 +14,7 @@ import {
   Tag,
   Truck,
   Users,
+  UsersRound,
   type LucideIcon,
 } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
@@ -19,7 +22,10 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AuthMenu } from "@/features/auth/components/auth-menu.component";
-import { PERMISSIONS, type PermissionRequirement } from "@/components/rbac/permissions";
+import {
+  PERMISSIONS,
+  type PermissionRequirement,
+} from "@/components/rbac/permissions";
 import { canAccess } from "@/components/rbac/rbac.utils";
 import { getAuthUser } from "@/routes/auth";
 import { cn } from "@/libs/utils";
@@ -76,10 +82,22 @@ const menuGroups: MenuGroup[] = [
         },
       },
       {
+        label: "Cashier Shifts",
+        path: "/cashier-shifts",
+        icon: ReceiptText,
+        permissions: { anyOf: [PERMISSIONS.reports.view] },
+      },
+      {
         label: "Promotions",
         path: "/promotions",
         icon: Tag,
         permissions: { anyOf: [PERMISSIONS.promotions.read] },
+      },
+      {
+        label: "Customers",
+        path: "/customers",
+        icon: UsersRound,
+        permissions: { anyOf: [PERMISSIONS.customers.read] },
       },
     ],
   },
@@ -96,6 +114,12 @@ const menuGroups: MenuGroup[] = [
         label: "Inventory",
         path: "/inventory",
         icon: Boxes,
+        permissions: { anyOf: [PERMISSIONS.stock.read] },
+      },
+      {
+        label: "Stock Opname",
+        path: "/stock-opnames",
+        icon: ClipboardCheck,
         permissions: { anyOf: [PERMISSIONS.stock.read] },
       },
       {
@@ -139,10 +163,19 @@ const menuGroups: MenuGroup[] = [
         permissions: { anyOf: [PERMISSIONS.reports.view] },
       },
       {
+        label: "Audit Logs",
+        path: "/audit-logs",
+        icon: FileSearch,
+        permissions: { anyOf: [PERMISSIONS.reports.view] },
+      },
+      {
         label: "Users",
         path: "/users/staff",
         icon: Users,
         matchPath: "/users",
+        permissions: {
+          anyOf: [PERMISSIONS.users.read, PERMISSIONS.roles.read],
+        },
         children: [
           {
             label: "Staff",
@@ -228,9 +261,9 @@ export function AppLayout() {
                     <NavLink
                       className={({ isActive }) =>
                         cn(
-                          "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
+                          "flex items-center gap-3 rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-primary/90 hover:text-white",
                           (isActive || isParentActive) &&
-                            "bg-primary/10 text-foreground",
+                            "bg-primary text-white font-bold",
                         )
                       }
                       to={item.path}
@@ -245,8 +278,8 @@ export function AppLayout() {
                           <NavLink
                             className={({ isActive }) =>
                               cn(
-                                "block rounded-lg px-3 py-1.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground",
-                                isActive && "bg-muted text-foreground",
+                                "block rounded-lg px-3 py-1 text-sm font-medium text-muted-foreground transition-colors hover:bg-primary/30 hover:text-foreground",
+                                isActive && "bg-primary/40 text-foreground",
                               )
                             }
                             key={child.path}

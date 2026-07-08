@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { Loader2, Plus, Trash2 } from "lucide-react";
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 import { useFieldArray, useForm, useWatch } from "react-hook-form";
 import { toast } from "sonner";
 
@@ -27,14 +27,19 @@ import {
   purchaseFormSchema,
   type PurchaseFormValues,
 } from "@/features/purchase/schemas/purchase-form.schema";
+import type { PurchaseEntity } from "@/graphql/generated";
 import { useLocations } from "@/resources/gql/location.gql";
 import { useProducts } from "@/resources/gql/product.gql";
-import { useCreatePurchase } from "@/resources/gql/purchase.gql";
+import {
+  useCreatePurchase,
+  useUpdatePurchase,
+} from "@/resources/gql/purchase.gql";
 import { useSuppliers } from "@/resources/gql/supplier.gql";
 
 type PurchaseFormSheetProps = {
   open: boolean;
   onOpenChange: (open: boolean) => void;
+  purchase?: PurchaseEntity | null;
 };
 
 const defaultValues: PurchaseFormValues = {
@@ -57,8 +62,11 @@ function formatCurrency(value: number) {
 export function PurchaseFormSheet({
   open,
   onOpenChange,
+  purchase,
 }: PurchaseFormSheetProps) {
   const createPurchase = useCreatePurchase();
+  const updatePurchase = useUpdatePurchase();
+  const isEdit = Boolean(purchase);
   const suppliersQuery = useSuppliers({ limit: 100 });
   const locationsQuery = useLocations({
     limit: 100,
@@ -89,7 +97,32 @@ export function PurchaseFormSheet({
       ),
     [watchedItems],
   );
-  const isSubmitting = createPurchase.isPending;
+  const isSubmitting = createPurchase.isPending || updatePurchase.isPending;
+
+  useEffect(() => {
+    if (!open) {
+      return;
+    }
+
+    if (purchase) {
+      form.reset({
+        supplierId: purchase.supplierId,
+        locationId: purchase.locationId,
+        purchaseDate:
+          typeof purchase.purchaseDate === "string"
+            ? purchase.purchaseDate.slice(0, 10)
+            : "",
+        items: purchase.items.map((item) => ({
+          productId: item.productId,
+          qty: item.qty,
+          costPrice: item.costPrice,
+        })),
+      });
+      return;
+    }
+
+    form.reset(defaultValues);
+  }, [form, open, purchase]);
 
   function addItem() {
     append({ productId: "", qty: 1, costPrice: 0 });
@@ -97,7 +130,7 @@ export function PurchaseFormSheet({
 
   async function handleSubmit(values: PurchaseFormValues) {
     try {
-      await createPurchase.mutateAsync({
+      const payload = {
         supplierId: values.supplierId,
         locationId: values.locationId,
         purchaseDate: values.purchaseDate || undefined,
@@ -106,13 +139,23 @@ export function PurchaseFormSheet({
           qty: item.qty,
           costPrice: item.costPrice,
         })),
-      });
+      };
 
-      toast.success("Purchase created");
+      if (purchase) {
+        await updatePurchase.mutateAsync({
+          id: purchase.id,
+          ...payload,
+        });
+        toast.success("Purchase draft updated");
+      } else {
+        await createPurchase.mutateAsync(payload);
+        toast.success("Purchase created");
+      }
+
       form.reset(defaultValues);
       onOpenChange(false);
     } catch (error) {
-      toast.error("Failed to create purchase", {
+      toast.error(isEdit ? "Failed to update purchase" : "Failed to create purchase", {
         description: ErrorHelper.parse(error).message,
       });
     }
@@ -122,7 +165,7 @@ export function PurchaseFormSheet({
     <Sheet onOpenChange={onOpenChange} open={open}>
       <SheetContent className="xl-sheet overflow-y-auto">
         <SheetHeader>
-          <SheetTitle>Create purchase</SheetTitle>
+          <SheetTitle>{isEdit ? "Edit purchase draft" : "Create purchase"}</SheetTitle>
           <SheetDescription>
             Purchase items will become stock-in through inventory transactions.
           </SheetDescription>
@@ -321,7 +364,7 @@ export function PurchaseFormSheet({
                 Saving
               </>
             ) : (
-              "Create purchase"
+              isEdit ? "Save draft changes" : "Create purchase"
             )}
           </Button>
         </SheetFooter>

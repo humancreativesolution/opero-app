@@ -1,5 +1,8 @@
 import { Navigate, type RouteObject } from "react-router-dom";
 
+import AuditLogsPage from "@pages/audit-logs";
+import CashierShiftsPage from "@pages/cashier-shifts";
+import CustomersPage from "@pages/customers";
 import DashboardPage from "@pages/dashboard";
 import InventoryPage from "@pages/inventory";
 import LocationsPage from "@pages/locations";
@@ -12,6 +15,7 @@ import PurchasesPage from "@pages/purchases";
 import ReportsPage from "@pages/reports";
 import SalesPage from "@pages/sales";
 import SettingsPage from "@pages/settings";
+import StockOpnamesPage from "@pages/stock-opnames";
 import SuppliersPage from "@pages/suppliers";
 import UnitsPage from "@pages/units";
 import UsersPage from "@pages/users";
@@ -32,8 +36,14 @@ const ProductsRoute = withPermission(ProductsPage, {
 const PromotionsRoute = withPermission(PromotionsPage, {
   anyOf: [PERMISSIONS.promotions.read],
 });
+const CustomersRoute = withPermission(CustomersPage, {
+  anyOf: [PERMISSIONS.customers.read],
+});
 const SalesRoute = withPermission(SalesPage, {
   anyOf: [PERMISSIONS.receipt.view, PERMISSIONS.reports.view],
+});
+const CashierShiftsRoute = withPermission(CashierShiftsPage, {
+  anyOf: [PERMISSIONS.reports.view],
 });
 const SuppliersRoute = withPermission(SuppliersPage, {
   anyOf: [PERMISSIONS.suppliers.read],
@@ -50,7 +60,13 @@ const PurchasesRoute = withPermission(PurchasesPage, {
 const InventoryRoute = withPermission(InventoryPage, {
   anyOf: [PERMISSIONS.stock.read],
 });
+const StockOpnamesRoute = withPermission(StockOpnamesPage, {
+  anyOf: [PERMISSIONS.stock.read],
+});
 const ReportsRoute = withPermission(ReportsPage, {
+  anyOf: [PERMISSIONS.reports.view],
+});
+const AuditLogsRoute = withPermission(AuditLogsPage, {
   anyOf: [PERMISSIONS.reports.view],
 });
 const StaffRoute = withPermission(() => <UsersPage view="staff" />, {
@@ -79,13 +95,17 @@ const routes = [
       { path: "dashboard", element: <DashboardRoute /> },
       { path: "products", element: <ProductsRoute /> },
       { path: "promotions", element: <PromotionsRoute /> },
+      { path: "customers", element: <CustomersRoute /> },
       { path: "sales", element: <SalesRoute /> },
+      { path: "cashier-shifts", element: <CashierShiftsRoute /> },
       { path: "suppliers", element: <SuppliersRoute /> },
       { path: "locations", element: <LocationsRoute /> },
       { path: "units", element: <UnitsRoute /> },
       { path: "purchases", element: <PurchasesRoute /> },
       { path: "inventory", element: <InventoryRoute /> },
+      { path: "stock-opnames", element: <StockOpnamesRoute /> },
       { path: "reports", element: <ReportsRoute /> },
+      { path: "audit-logs", element: <AuditLogsRoute /> },
       {
         path: "users",
         children: [

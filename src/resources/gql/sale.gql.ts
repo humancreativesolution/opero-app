@@ -22,6 +22,10 @@ const GET_SALES = /* GraphQL */ `
         type
         status
         cashierShiftId
+        customerId
+        customerName
+        customerPhone
+        customerEmail
         locationId
         locationName
         totalAmount
@@ -112,6 +116,10 @@ const CREATE_SALE = /* GraphQL */ `
       status
       locationId
       locationName
+      customerId
+      customerName
+      customerPhone
+      customerEmail
       totalAmount
       paidAmount
       changeAmount
@@ -161,6 +169,10 @@ const CREATE_SALE_RETURN = /* GraphQL */ `
       reason
       locationId
       locationName
+      customerId
+      customerName
+      customerPhone
+      customerEmail
       totalAmount
       paidAmount
       changeAmount

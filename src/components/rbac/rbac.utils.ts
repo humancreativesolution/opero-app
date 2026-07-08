@@ -8,7 +8,9 @@ export function getCurrentUserPermissions() {
 }
 
 export function isOwnerRole(user: UserResponse | null = getAuthUser()) {
-  return user?.role.trim().toLowerCase() === "owner";
+  const normalizedRole = user?.role.trim().toLowerCase();
+
+  return normalizedRole === "owner" || normalizedRole?.includes("owner");
 }
 
 export function isCurrentUserSuperuser() {

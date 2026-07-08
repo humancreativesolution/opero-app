@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Edit, Plus, ShieldCheck, Trash2, UserPlus } from "lucide-react";
+import { Edit, Eye, Plus, ShieldCheck, Trash2, UserPlus } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -16,6 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { RoleDetailSheet } from "@/features/role/components/role-detail-sheet.component";
 import { RoleFormSheet } from "@/features/role/components/role-form-sheet.component";
 import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
 import { PERMISSIONS } from "@/components/rbac/permissions";
@@ -60,8 +61,10 @@ export default function UsersPage({ view }: UsersPageProps) {
   const [search, setSearch] = useState("");
   const [userSheetOpen, setUserSheetOpen] = useState(false);
   const [roleSheetOpen, setRoleSheetOpen] = useState(false);
+  const [roleDetailSheetOpen, setRoleDetailSheetOpen] = useState(false);
   const [selectedUser, setSelectedUser] = useState<UserEntity | null>(null);
   const [selectedRole, setSelectedRole] = useState<RoleEntity | null>(null);
+  const [detailRole, setDetailRole] = useState<RoleEntity | null>(null);
   const [deleteUser, setDeleteUser] = useState<UserEntity | null>(null);
   const [deleteRole, setDeleteRole] = useState<RoleEntity | null>(null);
 
@@ -127,6 +130,11 @@ export default function UsersPage({ view }: UsersPageProps) {
 
     setSelectedRole(role);
     setRoleSheetOpen(true);
+  }
+
+  function handleViewRole(role: RoleEntity) {
+    setDetailRole(role);
+    setRoleDetailSheetOpen(true);
   }
 
   async function handleDeleteUser() {
@@ -262,6 +270,15 @@ export default function UsersPage({ view }: UsersPageProps) {
 
           return (
             <div className="flex justify-end gap-1">
+              <Button
+                onClick={() => handleViewRole(row.original)}
+                size="icon-sm"
+                title="View role detail"
+                variant="ghost"
+              >
+                <Eye className="size-4" />
+                <span className="sr-only">View role detail</span>
+              </Button>
               {canUpdateRole ? (
                 <Button
                   disabled={isOwner}
@@ -387,6 +404,17 @@ export default function UsersPage({ view }: UsersPageProps) {
         onOpenChange={setRoleSheetOpen}
         open={roleSheetOpen}
         role={selectedRole}
+      />
+
+      <RoleDetailSheet
+        onOpenChange={(open) => {
+          setRoleDetailSheetOpen(open);
+          if (!open) {
+            setDetailRole(null);
+          }
+        }}
+        open={roleDetailSheetOpen}
+        role={detailRole}
       />
 
       <Dialog onOpenChange={(open) => !open && setDeleteUser(null)} open={Boolean(deleteUser)}>

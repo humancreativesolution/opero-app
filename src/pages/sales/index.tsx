@@ -87,6 +87,9 @@ export default function SalesPage() {
       [
         sale.invoiceNo,
         sale.locationName,
+        sale.customerName,
+        sale.customerPhone,
+        sale.customerEmail,
         sale.status,
         sale.type,
         sale.cashierShiftId,
@@ -118,6 +121,20 @@ export default function SalesPage() {
       {
         accessorKey: "locationName",
         header: "Outlet",
+      },
+      {
+        accessorKey: "customerName",
+        header: "Customer",
+        cell: ({ row }) => (
+          <div>
+            <p>{row.original.customerName || "Walk-in"}</p>
+            {row.original.customerPhone || row.original.customerEmail ? (
+              <p className="text-xs text-muted-foreground">
+                {row.original.customerPhone || row.original.customerEmail}
+              </p>
+            ) : null}
+          </div>
+        ),
       },
       {
         accessorKey: "type",
@@ -226,7 +243,7 @@ export default function SalesPage() {
                   <Input
                     className="pl-9"
                     onChange={(event) => setSearch(event.target.value)}
-                    placeholder="Search invoice, outlet, status, or shift"
+                    placeholder="Search invoice, customer, outlet, status, or shift"
                     value={search}
                   />
                 </div>
@@ -299,6 +316,20 @@ export default function SalesPage() {
                 <div className="flex justify-between gap-3">
                   <span className="text-muted-foreground">Status</span>
                   <span className="font-medium">{selectedSale.status}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Customer</span>
+                  <span className="font-medium">
+                    {selectedSale.customerName || "Walk-in"}
+                  </span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Contact</span>
+                  <span className="font-medium">
+                    {selectedSale.customerPhone ||
+                      selectedSale.customerEmail ||
+                      "-"}
+                  </span>
                 </div>
                 <div className="flex justify-between gap-3">
                   <span className="text-muted-foreground">Paid</span>

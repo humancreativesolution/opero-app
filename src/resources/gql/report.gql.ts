@@ -49,6 +49,8 @@ const GET_SALES_REPORT_TRANSACTIONS = /* GraphQL */ `
         cashierShiftId
         cashierUserId
         cashierName
+        customerId
+        customerName
         locationId
         locationName
         itemCount
