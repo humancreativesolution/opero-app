@@ -1,5 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import {
+  AlertTriangle,
   ArrowRightLeft,
   Boxes,
   ChevronDown,
@@ -7,6 +8,7 @@ import {
   History,
   PackagePlus,
   Search,
+  SlidersHorizontal,
 } from "lucide-react";
 import { useMemo, useState } from "react";
 
@@ -24,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { InitialStockFormSheet } from "@/features/inventory/components/initial-stock-form-sheet.component";
+import { MinimumStockFormSheet } from "@/features/inventory/components/minimum-stock-form-sheet.component";
 import { StockTransferFormSheet } from "@/features/inventory/components/stock-transfer-form-sheet.component";
 import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
 import { PERMISSIONS } from "@/components/rbac/permissions";
@@ -34,12 +37,16 @@ import type {
 } from "@/graphql/generated";
 import { cn } from "@/libs/utils";
 import {
+  StockWarningStatus,
   useInventoryBalances,
   useInventoryTransactions,
+  useStockWarnings,
+  type StockWarningEntity,
 } from "@/resources/gql/inventory.gql";
 import { useLocations } from "@/resources/gql/location.gql";
+import { useProducts } from "@/resources/gql/product.gql";
 
-type InventoryTab = "stock" | "transactions";
+type InventoryTab = "stock" | "warnings" | "transactions";
 
 type ProductStockGroup = {
   productId: string;
@@ -77,23 +84,56 @@ function getTransactionClassName(type: InventoryTransactionType) {
   return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300";
 }
 
+function getWarningClassName(status: string) {
+  if (status === StockWarningStatus.OutOfStock) {
+    return "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300";
+  }
+
+  return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300";
+}
+
+function formatWarningStatus(status: string) {
+  return status
+    .split("_")
+    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export default function InventoryPage() {
   const [activeTab, setActiveTab] = useState<InventoryTab>("stock");
   const [search, setSearch] = useState("");
   const [locationId, setLocationId] = useState("");
+  const [warningProductId, setWarningProductId] = useState("");
+  const [warningStatus, setWarningStatus] = useState("");
   const [expandedProductIds, setExpandedProductIds] = useState<
     Record<string, boolean>
   >({});
   const [initialStockSheetOpen, setInitialStockSheetOpen] = useState(false);
   const [transferSheetOpen, setTransferSheetOpen] = useState(false);
+  const [minimumStockSheetOpen, setMinimumStockSheetOpen] = useState(false);
   const inventoryFilter = {
     filter: {
       locationId: locationId || undefined,
     },
   };
+  const warningFilter = {
+    filter: {
+      locationId: locationId || undefined,
+      productId: warningProductId || undefined,
+      status: warningStatus
+        ? (warningStatus as StockWarningEntity["status"])
+        : undefined,
+    },
+  };
   const locationsQuery = useLocations({ limit: 100 });
+  const productsQuery = useProducts({ limit: 100 });
   const balancesQuery = useInventoryBalances(inventoryFilter);
   const transactionsQuery = useInventoryTransactions(inventoryFilter);
+  const stockWarningsQuery = useStockWarnings(warningFilter);
+  const stockProducts = useMemo(
+    () => (productsQuery.data?.data ?? []).filter((product) => product.trackInventory),
+    [productsQuery.data?.data],
+  );
   const filteredBalances = useMemo(() => {
     const keyword = search.trim().toLowerCase();
     const balances = balancesQuery.data ?? [];
@@ -128,6 +168,26 @@ export default function InventoryPage() {
         .some((value) => value.toLowerCase().includes(keyword)),
     );
   }, [search, transactionsQuery.data]);
+  const filteredWarnings = useMemo(() => {
+    const keyword = search.trim().toLowerCase();
+    const warnings = stockWarningsQuery.data ?? [];
+
+    if (!keyword) {
+      return warnings;
+    }
+
+    return warnings.filter((warning) =>
+      [
+        warning.productName,
+        warning.sku,
+        warning.barcode,
+        warning.locationName,
+        warning.status,
+      ]
+        .filter(Boolean)
+        .some((value) => value?.toLowerCase().includes(keyword)),
+    );
+  }, [search, stockWarningsQuery.data]);
   const groupedBalances = useMemo<ProductStockGroup[]>(() => {
     const groups = new Map<string, ProductStockGroup>();
 
@@ -231,6 +291,53 @@ export default function InventoryPage() {
     ],
     [],
   );
+  const warningColumns = useMemo<ColumnDef<StockWarningEntity>[]>(
+    () => [
+      {
+        accessorKey: "productName",
+        header: "Product",
+        cell: ({ row }) => (
+          <div>
+            <p className="font-medium">{row.original.productName}</p>
+            <p className="text-xs text-muted-foreground">
+              {row.original.barcode || row.original.sku || "No barcode/SKU"}
+            </p>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "locationName",
+        header: "Location",
+      },
+      {
+        accessorKey: "stockOnHand",
+        header: () => <div className="text-right">Stock on hand</div>,
+        cell: ({ row }) => (
+          <div className="text-right font-medium">{row.original.stockOnHand}</div>
+        ),
+      },
+      {
+        accessorKey: "minimumStock",
+        header: () => <div className="text-right">Minimum stock</div>,
+        cell: ({ row }) => (
+          <div className="text-right">{row.original.minimumStock}</div>
+        ),
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => (
+          <Badge
+            className={getWarningClassName(row.original.status)}
+            variant="outline"
+          >
+            {formatWarningStatus(row.original.status)}
+          </Badge>
+        ),
+      },
+    ],
+    [],
+  );
   const tableToolbar = (
     <div className="flex w-full flex-col gap-2 sm:flex-row">
       <div className="relative w-full sm:max-w-sm">
@@ -253,6 +360,52 @@ export default function InventoryPage() {
             {location.name}
           </option>
         ))}
+      </select>
+    </div>
+  );
+  const warningToolbar = (
+    <div className="grid w-full gap-2 md:grid-cols-[minmax(12rem,1fr)_12rem_12rem_12rem]">
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          className="pl-9"
+          onChange={(event) => setSearch(event.target.value)}
+          placeholder="Search product, SKU, barcode, or location"
+          value={search}
+        />
+      </div>
+      <select
+        className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
+        onChange={(event) => setLocationId(event.target.value)}
+        value={locationId}
+      >
+        <option value="">All locations</option>
+        {(locationsQuery.data?.data ?? []).map((location) => (
+          <option key={location.id} value={location.id}>
+            {location.name}
+          </option>
+        ))}
+      </select>
+      <select
+        className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
+        onChange={(event) => setWarningProductId(event.target.value)}
+        value={warningProductId}
+      >
+        <option value="">All products</option>
+        {stockProducts.map((product) => (
+          <option key={product.id} value={product.id}>
+            {product.name}
+          </option>
+        ))}
+      </select>
+      <select
+        className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
+        onChange={(event) => setWarningStatus(event.target.value)}
+        value={warningStatus}
+      >
+        <option value="">All statuses</option>
+        <option value={StockWarningStatus.LowStock}>Low stock</option>
+        <option value={StockWarningStatus.OutOfStock}>Out of stock</option>
       </select>
     </div>
   );
@@ -386,6 +539,15 @@ export default function InventoryPage() {
               Transfer stock
             </Button>
           </PermissionGate>
+          <PermissionGate anyOf={[PERMISSIONS.stock.adjust]}>
+            <Button
+              onClick={() => setMinimumStockSheetOpen(true)}
+              variant="outline"
+            >
+              <SlidersHorizontal className="size-4" />
+              Set minimum stock
+            </Button>
+          </PermissionGate>
           <div className="inline-flex rounded-lg border bg-background p-1">
             <Button
               className={cn(activeTab !== "stock" && "text-muted-foreground")}
@@ -405,6 +567,16 @@ export default function InventoryPage() {
             >
               Transactions
             </Button>
+            <Button
+              className={cn(
+                activeTab !== "warnings" && "text-muted-foreground",
+              )}
+              onClick={() => setActiveTab("warnings")}
+              size="sm"
+              variant={activeTab === "warnings" ? "secondary" : "ghost"}
+            >
+              Stock Alerts
+            </Button>
           </div>
         </div>
       </div>
@@ -414,15 +586,29 @@ export default function InventoryPage() {
           <CardTitle className="flex items-center gap-2 text-base">
             {activeTab === "stock" ? (
               <Boxes className="size-4 text-muted-foreground" />
+            ) : activeTab === "warnings" ? (
+              <AlertTriangle className="size-4 text-muted-foreground" />
             ) : (
               <History className="size-4 text-muted-foreground" />
             )}
-            {activeTab === "stock" ? "Stock on hand" : "Inventory transactions"}
+            {activeTab === "stock"
+              ? "Stock on hand"
+              : activeTab === "warnings"
+                ? "Stock alerts"
+                : "Inventory transactions"}
           </CardTitle>
         </CardHeader>
         <CardContent>
           {activeTab === "stock" ? (
             renderStockTable()
+          ) : activeTab === "warnings" ? (
+            <DataTable
+              columns={warningColumns}
+              data={filteredWarnings}
+              emptyMessage="No stock alerts found."
+              isLoading={stockWarningsQuery.isLoading}
+              toolbar={warningToolbar}
+            />
           ) : (
             <DataTable
               columns={transactionColumns}
@@ -443,6 +629,11 @@ export default function InventoryPage() {
       <StockTransferFormSheet
         onOpenChange={setTransferSheetOpen}
         open={transferSheetOpen}
+      />
+
+      <MinimumStockFormSheet
+        onOpenChange={setMinimumStockSheetOpen}
+        open={minimumStockSheetOpen}
       />
     </div>
   );
