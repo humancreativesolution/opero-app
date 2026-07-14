@@ -165,6 +165,15 @@ export function CashierShiftReportDialog({
                   <ReportMetric
                     label="Expected cash"
                     value={formatCurrency(report.expectedCash)}
+                    helper="Opening + cash payment + cash in - cash out"
+                  />
+                  <ReportMetric
+                    label="Cash in"
+                    value={formatCurrency(report.cashInTotal)}
+                  />
+                  <ReportMetric
+                    label="Cash out"
+                    value={formatCurrency(report.cashOutTotal)}
                   />
                   <ReportMetric
                     label="Counted cash"

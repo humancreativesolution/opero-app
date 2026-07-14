@@ -3,6 +3,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
   PaginatedSalesReportItems,
   PaginatedSalesReportTransactions,
+  PaginationMeta,
   SalesReportFilterInput,
   SalesReportItemEntity,
   SalesReportSummaryEntity,
@@ -14,6 +15,65 @@ type SalesReportListParams = {
   page?: number;
   limit?: number;
   filter?: SalesReportFilterInput;
+};
+
+export const ReportExportStatus = {
+  Completed: "COMPLETED",
+  Failed: "FAILED",
+  Pending: "PENDING",
+  Processing: "PROCESSING",
+} as const;
+
+export type ReportExportStatus =
+  (typeof ReportExportStatus)[keyof typeof ReportExportStatus];
+
+export const ReportExportType = {
+  SalesReportItems: "SALES_REPORT_ITEMS",
+  SalesReportTransactions: "SALES_REPORT_TRANSACTIONS",
+} as const;
+
+export type ReportExportType =
+  (typeof ReportExportType)[keyof typeof ReportExportType];
+
+export type ReportExportJobEntity = {
+  id: string;
+  tenantId: string;
+  requestedByUserId?: string | null;
+  requestedByUserName?: string | null;
+  type: string;
+  status: ReportExportStatus;
+  filterJson?: string | null;
+  fileName?: string | null;
+  contentType?: string | null;
+  content?: string | null;
+  errorMessage?: string | null;
+  createdAt: string;
+  startedAt?: string | null;
+  completedAt?: string | null;
+  failedAt?: string | null;
+  expiresAt?: string | null;
+  isDownloadable: boolean;
+};
+
+export type ReportExportJobSummaryEntity = Omit<
+  ReportExportJobEntity,
+  "content"
+>;
+
+export type PaginatedReportExportJobs = {
+  data: ReportExportJobSummaryEntity[];
+  meta: PaginationMeta;
+};
+
+export type ReportExportJobFilterInput = {
+  status?: ReportExportStatus;
+  type?: ReportExportType;
+};
+
+type ReportExportJobListParams = {
+  page?: number;
+  limit?: number;
+  filter?: ReportExportJobFilterInput;
 };
 
 const GET_SALES_REPORT_SUMMARY = /* GraphQL */ `
@@ -111,15 +171,112 @@ const GET_SALES_REPORT_ITEMS = /* GraphQL */ `
   }
 `;
 
-const EXPORT_SALES_REPORT_TRANSACTIONS_CSV = /* GraphQL */ `
-  query ExportSalesTransactions($filter: SalesReportFilterInput) {
-    salesReportTransactionsCsv(filter: $filter)
+const CREATE_SALES_REPORT_TRANSACTIONS_EXPORT = /* GraphQL */ `
+  mutation CreateSalesReportTransactionsExport($filter: SalesReportFilterInput) {
+    createSalesReportTransactionsExport(filter: $filter) {
+      id
+      tenantId
+      requestedByUserId
+      requestedByUserName
+      type
+      status
+      filterJson
+      fileName
+      contentType
+      content
+      errorMessage
+      createdAt
+      startedAt
+      completedAt
+      failedAt
+      expiresAt
+      isDownloadable
+    }
   }
 `;
 
-const EXPORT_SALES_REPORT_ITEMS_CSV = /* GraphQL */ `
-  query ExportSalesItems($filter: SalesReportFilterInput) {
-    salesReportItemsCsv(filter: $filter)
+const CREATE_SALES_REPORT_ITEMS_EXPORT = /* GraphQL */ `
+  mutation CreateSalesReportItemsExport($filter: SalesReportFilterInput) {
+    createSalesReportItemsExport(filter: $filter) {
+      id
+      tenantId
+      requestedByUserId
+      requestedByUserName
+      type
+      status
+      filterJson
+      fileName
+      contentType
+      content
+      errorMessage
+      createdAt
+      startedAt
+      completedAt
+      failedAt
+      expiresAt
+      isDownloadable
+    }
+  }
+`;
+
+const GET_REPORT_EXPORT_JOB = /* GraphQL */ `
+  query ReportExportJob($id: ID!) {
+    reportExportJob(id: $id) {
+      id
+      tenantId
+      requestedByUserId
+      requestedByUserName
+      type
+      status
+      filterJson
+      fileName
+      contentType
+      content
+      errorMessage
+      createdAt
+      startedAt
+      completedAt
+      failedAt
+      expiresAt
+      isDownloadable
+    }
+  }
+`;
+
+const GET_REPORT_EXPORT_JOBS = /* GraphQL */ `
+  query ReportExportJobs(
+    $page: Int!
+    $limit: Int!
+    $filter: ReportExportJobFilterInput
+  ) {
+    reportExportJobs(page: $page, limit: $limit, filter: $filter) {
+      data {
+        id
+        tenantId
+        requestedByUserId
+        requestedByUserName
+        type
+        status
+        filterJson
+        fileName
+        contentType
+        errorMessage
+        createdAt
+        startedAt
+        completedAt
+        failedAt
+        expiresAt
+        isDownloadable
+      }
+      meta {
+        page
+        limit
+        totalCount
+        totalPages
+        hasNextPage
+        hasPrevPage
+      }
+    }
   }
 `;
 
@@ -131,6 +288,9 @@ export const reportKeys = {
     [...reportKeys.all, "sales-transactions", params] as const,
   salesItems: (params: SalesReportListParams) =>
     [...reportKeys.all, "sales-items", params] as const,
+  exportJobs: (params: ReportExportJobListParams) =>
+    [...reportKeys.all, "export-jobs", params] as const,
+  exportJob: (id: string) => [...reportKeys.all, "export-job", id] as const,
 };
 
 export function useSalesReportSummary(filter?: SalesReportFilterInput) {
@@ -179,27 +339,54 @@ export function useSalesReportItems(params: SalesReportListParams = {}) {
   });
 }
 
-export function useExportSalesReportTransactionsCsv() {
+export function useCreateSalesReportTransactionsExport() {
   return useMutation({
     mutationFn: (filter?: SalesReportFilterInput) =>
       gqlClient
-        .request<{ salesReportTransactionsCsv: string }>(
-          EXPORT_SALES_REPORT_TRANSACTIONS_CSV,
+        .request<{ createSalesReportTransactionsExport: ReportExportJobEntity }>(
+          CREATE_SALES_REPORT_TRANSACTIONS_EXPORT,
           { filter },
         )
-        .then((data) => data.salesReportTransactionsCsv),
+        .then((data) => data.createSalesReportTransactionsExport),
   });
 }
 
-export function useExportSalesReportItemsCsv() {
+export function useCreateSalesReportItemsExport() {
   return useMutation({
     mutationFn: (filter?: SalesReportFilterInput) =>
       gqlClient
-        .request<{ salesReportItemsCsv: string }>(EXPORT_SALES_REPORT_ITEMS_CSV, {
-          filter,
-        })
-        .then((data) => data.salesReportItemsCsv),
+        .request<{ createSalesReportItemsExport: ReportExportJobEntity }>(
+          CREATE_SALES_REPORT_ITEMS_EXPORT,
+          { filter },
+        )
+        .then((data) => data.createSalesReportItemsExport),
   });
+}
+
+export function useReportExportJobs(params: ReportExportJobListParams = {}) {
+  const queryParams = {
+    page: params.page ?? 1,
+    limit: params.limit ?? 10,
+    filter: params.filter,
+  };
+
+  return useQuery({
+    queryKey: reportKeys.exportJobs(queryParams),
+    queryFn: () =>
+      gqlClient.request<{ reportExportJobs: PaginatedReportExportJobs }>(
+        GET_REPORT_EXPORT_JOBS,
+        queryParams,
+      ),
+    select: (data) => data.reportExportJobs,
+  });
+}
+
+export function fetchReportExportJob(id: string) {
+  return gqlClient
+    .request<{ reportExportJob: ReportExportJobEntity }>(GET_REPORT_EXPORT_JOB, {
+      id,
+    })
+    .then((data) => data.reportExportJob);
 }
 
 export type {

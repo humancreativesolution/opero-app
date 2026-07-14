@@ -23,12 +23,19 @@ import { useCustomersByTenant } from "@/resources/gql/customer.gql";
 import type { SaleType, SalesReportPaymentMethod } from "@/graphql/generated";
 import { useLocations } from "@/resources/gql/location.gql";
 import {
+  fetchReportExportJob,
+  ReportExportStatus,
+  ReportExportType,
+  type ReportExportJobSummaryEntity,
+  type ReportExportStatus as ReportExportStatusValue,
+  type ReportExportType as ReportExportTypeValue,
   type SalesReportFilterInput,
   type SalesReportItemEntity,
   type SalesReportTransactionEntity,
-  useExportSalesReportItemsCsv,
-  useExportSalesReportTransactionsCsv,
+  useCreateSalesReportItemsExport,
+  useCreateSalesReportTransactionsExport,
   useSalesReportItems,
+  useReportExportJobs,
   useSalesReportSummary,
   useSalesReportTransactions,
 } from "@/resources/gql/report.gql";
@@ -72,10 +79,39 @@ function getSaleTypeBadgeClassName(type: SaleType) {
   return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300";
 }
 
+function getExportStatusClassName(status: string) {
+  if (status === ReportExportStatus.Completed) {
+    return "border-teal-200 bg-teal-50 text-teal-700 dark:border-teal-900 dark:bg-teal-950/40 dark:text-teal-300";
+  }
+
+  if (status === ReportExportStatus.Failed) {
+    return "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300";
+  }
+
+  return "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-900 dark:bg-amber-950/40 dark:text-amber-300";
+}
+
+function formatExportType(type: string) {
+  return type
+    .replace("SALES_REPORT_", "")
+    .split("_")
+    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
 type ReportView = "transactions" | "items";
 
-function downloadCsv(filename: string, content: string) {
-  const blob = new Blob([content], { type: "text/csv;charset=utf-8" });
+const EXPORT_POLL_INTERVAL_MS = 1000;
+const EXPORT_MAX_POLL_ATTEMPTS = 60;
+
+function sleep(ms: number) {
+  return new Promise((resolve) => window.setTimeout(resolve, ms));
+}
+
+function downloadCsv(filename: string, content: string, contentType?: string | null) {
+  const blob = new Blob([content], {
+    type: contentType || "text/csv;charset=utf-8",
+  });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
 
@@ -103,12 +139,18 @@ export default function ReportsPage() {
   const [transactionLimit, setTransactionLimit] = useState(10);
   const [itemPage, setItemPage] = useState(1);
   const [itemLimit, setItemLimit] = useState(10);
+  const [isExporting, setIsExporting] = useState(false);
+  const [downloadingExportJobId, setDownloadingExportJobId] = useState("");
+  const [exportHistoryPage, setExportHistoryPage] = useState(1);
+  const [exportHistoryLimit, setExportHistoryLimit] = useState(10);
+  const [exportHistoryType, setExportHistoryType] = useState("");
+  const [exportHistoryStatus, setExportHistoryStatus] = useState("");
 
   const locationsQuery = useLocations({ limit: 100 });
   const customersQuery = useCustomersByTenant({ isActive: true });
   const usersQuery = useGetUsers();
-  const exportTransactionsCsv = useExportSalesReportTransactionsCsv();
-  const exportItemsCsv = useExportSalesReportItemsCsv();
+  const createTransactionsExport = useCreateSalesReportTransactionsExport();
+  const createItemsExport = useCreateSalesReportItemsExport();
   const filter = useMemo<SalesReportFilterInput>(
     () => ({
       dateFrom: dateFrom || undefined,
@@ -145,6 +187,18 @@ export default function ReportsPage() {
     limit: itemLimit,
     filter,
   });
+  const exportJobsQuery = useReportExportJobs({
+    page: exportHistoryPage,
+    limit: exportHistoryLimit,
+    filter: {
+      type: exportHistoryType
+        ? (exportHistoryType as ReportExportTypeValue)
+        : undefined,
+      status: exportHistoryStatus
+        ? (exportHistoryStatus as ReportExportStatusValue)
+        : undefined,
+    },
+  });
 
   function resetPages() {
     setTransactionPage(1);
@@ -162,19 +216,80 @@ export default function ReportsPage() {
   }
 
   async function handleExportCsv() {
-    const datePart = `${dateFrom || "all"}-${dateTo || "all"}`;
+    setIsExporting(true);
 
     try {
-      if (view === "transactions") {
-        const csv = await exportTransactionsCsv.mutateAsync(filter);
-        downloadCsv(`sales-transactions-${datePart}.csv`, csv);
-        return;
+      const createdJob =
+        view === "transactions"
+          ? await createTransactionsExport.mutateAsync(filter)
+          : await createItemsExport.mutateAsync(filter);
+
+      toast.info("Export job started", {
+        description: "Preparing CSV file...",
+      });
+
+      for (let attempt = 0; attempt < EXPORT_MAX_POLL_ATTEMPTS; attempt += 1) {
+        const job =
+          attempt === 0 ? createdJob : await fetchReportExportJob(createdJob.id);
+
+        if (job.status === ReportExportStatus.Completed) {
+          if (!job.content) {
+            throw new Error("Export completed without file content");
+          }
+
+          downloadCsv(
+            job.fileName ?? "sales-report.csv",
+            job.content,
+            job.contentType,
+          );
+          void exportJobsQuery.refetch();
+          toast.success("Sales report exported");
+          return;
+        }
+
+        if (job.status === ReportExportStatus.Failed) {
+          throw new Error(job.errorMessage || "Export job failed");
+        }
+
+        await sleep(EXPORT_POLL_INTERVAL_MS);
       }
 
-      const csv = await exportItemsCsv.mutateAsync(filter);
-      downloadCsv(`sales-items-${datePart}.csv`, csv);
-    } catch {
-      toast.error("Failed to export sales report");
+      throw new Error("Export job timed out");
+    } catch (error) {
+      toast.error("Failed to export sales report", {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      setIsExporting(false);
+    }
+  }
+
+  async function handleDownloadExportJob(job: ReportExportJobSummaryEntity) {
+    if (!job.isDownloadable) {
+      toast.error("Export expired, please generate again.");
+      return;
+    }
+
+    setDownloadingExportJobId(job.id);
+
+    try {
+      const detail = await fetchReportExportJob(job.id);
+
+      if (!detail.isDownloadable || !detail.content) {
+        throw new Error("Export expired, please generate again.");
+      }
+
+      downloadCsv(
+        detail.fileName ?? "sales-report.csv",
+        detail.content,
+        detail.contentType,
+      );
+    } catch (error) {
+      toast.error("Failed to download export", {
+        description: error instanceof Error ? error.message : String(error),
+      });
+    } finally {
+      setDownloadingExportJobId("");
     }
   }
 
@@ -363,6 +478,88 @@ export default function ReportsPage() {
     ],
     [],
   );
+  const exportJobColumns = useMemo<ColumnDef<ReportExportJobSummaryEntity>[]>(
+    () => [
+      {
+        accessorKey: "fileName",
+        header: "Export",
+        cell: ({ row }) => (
+          <div>
+            <p className="font-medium">
+              {row.original.fileName ?? formatExportType(row.original.type)}
+            </p>
+            <p className="text-xs text-muted-foreground">
+              {formatExportType(row.original.type)}
+            </p>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "status",
+        header: "Status",
+        cell: ({ row }) => (
+          <Badge
+            className={getExportStatusClassName(row.original.status)}
+            variant="outline"
+          >
+            {row.original.status}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: "requestedByUserName",
+        header: "Requested by",
+        cell: ({ row }) => row.original.requestedByUserName || "-",
+      },
+      {
+        accessorKey: "createdAt",
+        header: "Created",
+        cell: ({ row }) => formatDate(row.original.createdAt),
+      },
+      {
+        accessorKey: "expiresAt",
+        header: "Expires",
+        cell: ({ row }) =>
+          row.original.expiresAt ? formatDate(row.original.expiresAt) : "-",
+      },
+      {
+        id: "actions",
+        header: () => <div className="text-right">Action</div>,
+        cell: ({ row }) => {
+          const job = row.original;
+
+          return (
+            <div className="flex justify-end">
+              {job.status === ReportExportStatus.Completed && !job.isDownloadable ? (
+                <span className="text-xs text-muted-foreground">
+                  Export expired, please generate again.
+                </span>
+              ) : null}
+              {job.status === ReportExportStatus.Failed ? (
+                <span className="max-w-52 truncate text-xs text-destructive">
+                  {job.errorMessage || "Export failed"}
+                </span>
+              ) : null}
+              {job.isDownloadable ? (
+                <PermissionGate anyOf={[PERMISSIONS.reports.export]}>
+                  <Button
+                    disabled={downloadingExportJobId === job.id}
+                    onClick={() => void handleDownloadExportJob(job)}
+                    size="sm"
+                    variant="outline"
+                  >
+                    <Download className="size-4" />
+                    Download
+                  </Button>
+                </PermissionGate>
+              ) : null}
+            </div>
+          );
+        },
+      },
+    ],
+    [downloadingExportJobId],
+  );
 
   return (
     <div className="space-y-6">
@@ -377,13 +574,15 @@ export default function ReportsPage() {
           <PermissionGate anyOf={[PERMISSIONS.reports.export]}>
             <Button
               disabled={
-                exportTransactionsCsv.isPending || exportItemsCsv.isPending
+                isExporting ||
+                createTransactionsExport.isPending ||
+                createItemsExport.isPending
               }
               onClick={handleExportCsv}
               variant="outline"
             >
               <Download className="size-4" />
-              Export CSV
+              {isExporting ? "Preparing CSV..." : "Export CSV"}
             </Button>
           </PermissionGate>
           <Button
@@ -622,6 +821,66 @@ export default function ReportsPage() {
               }}
             />
           )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Download className="size-4 text-muted-foreground" />
+            Export history
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={exportJobColumns}
+            data={exportJobsQuery.data?.data ?? []}
+            emptyMessage="No export jobs found."
+            isLoading={exportJobsQuery.isLoading}
+            pagination={{
+              meta: exportJobsQuery.data?.meta,
+              onPageChange: setExportHistoryPage,
+              onPageSizeChange: (nextLimit) => {
+                setExportHistoryLimit(nextLimit);
+                setExportHistoryPage(1);
+              },
+              pageSizeOptions: [10, 25, 50],
+            }}
+            toolbar={
+              <div className="grid w-full gap-2 sm:grid-cols-2 lg:max-w-xl">
+                <select
+                  className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
+                  onChange={(event) => {
+                    setExportHistoryType(event.target.value);
+                    setExportHistoryPage(1);
+                  }}
+                  value={exportHistoryType}
+                >
+                  <option value="">All export types</option>
+                  <option value={ReportExportType.SalesReportTransactions}>
+                    Sales transactions
+                  </option>
+                  <option value={ReportExportType.SalesReportItems}>
+                    Sales items
+                  </option>
+                </select>
+                <select
+                  className="h-8 rounded-lg border border-input bg-background px-2 text-sm"
+                  onChange={(event) => {
+                    setExportHistoryStatus(event.target.value);
+                    setExportHistoryPage(1);
+                  }}
+                  value={exportHistoryStatus}
+                >
+                  <option value="">All statuses</option>
+                  <option value={ReportExportStatus.Pending}>Pending</option>
+                  <option value={ReportExportStatus.Processing}>Processing</option>
+                  <option value={ReportExportStatus.Completed}>Completed</option>
+                  <option value={ReportExportStatus.Failed}>Failed</option>
+                </select>
+              </div>
+            }
+          />
         </CardContent>
       </Card>
     </div>

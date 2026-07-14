@@ -23,6 +23,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CashMovementFormSheet } from "@/features/cashier-shift/components/cash-movement-form-sheet.component";
 import { CloseCashierShiftSheet } from "@/features/cashier-shift/components/close-cashier-shift-sheet.component";
 import { OpenCashierShiftSheet } from "@/features/cashier-shift/components/open-cashier-shift-sheet.component";
 import { PERMISSIONS } from "@/components/rbac/permissions";
@@ -61,6 +62,7 @@ export default function PosPage() {
   );
   const [openShiftSheetOpen, setOpenShiftSheetOpen] = useState(false);
   const [closeShiftSheetOpen, setCloseShiftSheetOpen] = useState(false);
+  const [cashMovementSheetOpen, setCashMovementSheetOpen] = useState(false);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const canCreateTransaction = canAccess({
     anyOf: [PERMISSIONS.pos.transaction],
@@ -580,6 +582,19 @@ export default function PosPage() {
               <CircleDollarSign className="size-4" />
               {currentShift ? "Close shift" : "Open shift"}
             </Button>
+            {currentShift ? (
+              <Button
+                className="mt-2 w-full"
+                disabled={!canCreateTransaction}
+                onClick={() => setCashMovementSheetOpen(true)}
+                size="sm"
+                type="button"
+                variant="outline"
+              >
+                <CircleDollarSign className="size-4" />
+                Cash In / Out
+              </Button>
+            ) : null}
           </div>
 
           <label className="grid gap-1 text-sm">
@@ -679,6 +694,12 @@ export default function PosPage() {
       <CloseCashierShiftSheet
         onOpenChange={setCloseShiftSheetOpen}
         open={closeShiftSheetOpen}
+        shift={currentShift}
+      />
+
+      <CashMovementFormSheet
+        onOpenChange={setCashMovementSheetOpen}
+        open={cashMovementSheetOpen}
         shift={currentShift}
       />
 

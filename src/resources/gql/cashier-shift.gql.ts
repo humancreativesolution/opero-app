@@ -1,15 +1,28 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type {
+  CashMovementEntity,
+  CashMovementFilterInput,
+  CreateCashMovementInput,
+  CashierShiftReportEntity,
   CashierShiftEntity,
   CashierShiftFilterInput,
-  CashierShiftReportEntity,
   CloseCashierShiftInput,
   OpenCashierShiftInput,
+  PaginatedCashMovements,
   PaginatedCashierShifts,
 } from "@/graphql/generated";
+import { CashMovementReason, CashMovementType } from "@/graphql/generated";
 import { ErrorHelper } from "@/libs/error";
 import { gqlClient } from "@/libs/graphql";
+
+export { CashMovementReason, CashMovementType };
+export type {
+  CashMovementEntity,
+  CashMovementFilterInput,
+  CashierShiftReportEntity,
+  CreateCashMovementInput,
+};
 
 const CASHIER_SHIFT_FIELDS = /* GraphQL */ `
   fragment CashierShiftFields on CashierShiftEntity {
@@ -93,6 +106,8 @@ const GET_CASHIER_SHIFT_REPORT = /* GraphQL */ `
       cogs
       grossProfit
       cashPaymentTotal
+      cashInTotal
+      cashOutTotal
       nonCashPaymentTotal
       paymentsByMethod {
         method
@@ -121,10 +136,68 @@ const CLOSE_CASHIER_SHIFT = /* GraphQL */ `
   }
 `;
 
+const CREATE_CASH_MOVEMENT = /* GraphQL */ `
+  mutation CreateCashMovement($input: CreateCashMovementInput!) {
+    createCashMovement(input: $input) {
+      id
+      tenantId
+      cashierShiftId
+      locationId
+      locationName
+      createdByUserId
+      createdByUserName
+      type
+      reason
+      amount
+      notes
+      createdAt
+    }
+  }
+`;
+
+const GET_CASH_MOVEMENTS = /* GraphQL */ `
+  query CashMovements(
+    $page: Int
+    $limit: Int
+    $filter: CashMovementFilterInput
+  ) {
+    cashMovements(page: $page, limit: $limit, filter: $filter) {
+      data {
+        id
+        tenantId
+        cashierShiftId
+        locationId
+        locationName
+        createdByUserId
+        createdByUserName
+        type
+        reason
+        amount
+        notes
+        createdAt
+      }
+      meta {
+        page
+        limit
+        totalCount
+        totalPages
+        hasNextPage
+        hasPrevPage
+      }
+    }
+  }
+`;
+
 type CashierShiftListParams = {
   page?: number;
   limit?: number;
   filter?: CashierShiftFilterInput;
+};
+
+type CashMovementListParams = {
+  page?: number;
+  limit?: number;
+  filter?: CashMovementFilterInput;
 };
 
 export const cashierShiftKeys = {
@@ -134,6 +207,9 @@ export const cashierShiftKeys = {
   lists: () => [...cashierShiftKeys.all, "list"] as const,
   list: (params: CashierShiftListParams) =>
     [...cashierShiftKeys.lists(), params] as const,
+  movements: () => [...cashierShiftKeys.all, "cash-movements"] as const,
+  movementList: (params: CashMovementListParams) =>
+    [...cashierShiftKeys.movements(), params] as const,
   report: (id?: string | null) => [...cashierShiftKeys.all, "report", id] as const,
 };
 
@@ -172,11 +248,31 @@ export function useCashierShiftReport(id?: string | null) {
     enabled: Boolean(id),
     queryKey: cashierShiftKeys.report(id),
     queryFn: () =>
-      gqlClient.request<{ cashierShiftReport: CashierShiftReportEntity }>(
+      gqlClient.request<{
+        cashierShiftReport: CashierShiftReportEntity;
+      }>(
         GET_CASHIER_SHIFT_REPORT,
         { id },
       ),
     select: (data) => data.cashierShiftReport,
+  });
+}
+
+export function useCashMovements(params: CashMovementListParams = {}) {
+  const queryParams = {
+    page: params.page ?? 1,
+    limit: params.limit ?? 10,
+    filter: params.filter,
+  };
+
+  return useQuery({
+    queryKey: cashierShiftKeys.movementList(queryParams),
+    queryFn: () =>
+      gqlClient.request<{ cashMovements: PaginatedCashMovements }>(
+        GET_CASH_MOVEMENTS,
+        queryParams,
+      ),
+    select: (data) => data.cashMovements,
   });
 }
 
@@ -217,6 +313,28 @@ export function useCloseCashierShift() {
         cashierShiftKeys.current(data.closeCashierShift.locationId),
         null,
       );
+    },
+    onError: (error: unknown) => {
+      throw ErrorHelper.parse(error);
+    },
+  });
+}
+
+export function useCreateCashMovement() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: CreateCashMovementInput) =>
+      gqlClient.request<{ createCashMovement: CashMovementEntity }>(
+        CREATE_CASH_MOVEMENT,
+        { input },
+      ),
+    onSuccess: (_data, variables) => {
+      queryClient.invalidateQueries({ queryKey: cashierShiftKeys.all });
+      queryClient.invalidateQueries({ queryKey: cashierShiftKeys.movements() });
+      queryClient.invalidateQueries({
+        queryKey: cashierShiftKeys.report(variables.cashierShiftId),
+      });
     },
     onError: (error: unknown) => {
       throw ErrorHelper.parse(error);

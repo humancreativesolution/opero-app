@@ -10,7 +10,15 @@ import { Input } from "@/components/ui/input";
 import { CashierShiftReportDialog } from "@/features/cashier-shift/components/cashier-shift-report-dialog.component";
 import type { CashierShiftEntity, CashierShiftStatus } from "@/graphql/generated";
 import { cn } from "@/libs/utils";
-import { useCashierShifts } from "@/resources/gql/cashier-shift.gql";
+import {
+  CashMovementReason,
+  CashMovementType,
+  useCashierShifts,
+  useCashMovements,
+  type CashMovementEntity,
+  type CashMovementReason as CashMovementReasonValue,
+  type CashMovementType as CashMovementTypeValue,
+} from "@/resources/gql/cashier-shift.gql";
 import { useLocations } from "@/resources/gql/location.gql";
 
 const currencyFormatter = new Intl.NumberFormat("id-ID", {
@@ -55,12 +63,38 @@ function getVarianceClassName(value?: number | null) {
     : "text-red-700 dark:text-red-300";
 }
 
+function getMovementTypeClassName(type: CashMovementTypeValue) {
+  if (type === CashMovementType.CashIn) {
+    return "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300";
+  }
+
+  return "border-red-200 bg-red-50 text-red-700 dark:border-red-900 dark:bg-red-950/40 dark:text-red-300";
+}
+
+function formatLabel(value: string) {
+  return value
+    .split("_")
+    .map((part) => part.charAt(0) + part.slice(1).toLowerCase())
+    .join(" ");
+}
+
 export default function CashierShiftsPage() {
   const [page, setPage] = useState(1);
   const [limit, setLimit] = useState(10);
+  const [movementPage, setMovementPage] = useState(1);
+  const [movementLimit, setMovementLimit] = useState(10);
   const [search, setSearch] = useState("");
+  const [movementSearch, setMovementSearch] = useState("");
   const [locationId, setLocationId] = useState("");
   const [status, setStatus] = useState<"" | CashierShiftStatus>("");
+  const [movementShiftId, setMovementShiftId] = useState("");
+  const [movementLocationId, setMovementLocationId] = useState("");
+  const [movementType, setMovementType] = useState<"" | CashMovementTypeValue>("");
+  const [movementReason, setMovementReason] = useState<
+    "" | CashMovementReasonValue
+  >("");
+  const [movementDateFrom, setMovementDateFrom] = useState("");
+  const [movementDateTo, setMovementDateTo] = useState("");
   const [reportShiftId, setReportShiftId] = useState<string | null>(null);
   const locationsQuery = useLocations({ limit: 100 });
   const shiftsQuery = useCashierShifts({
@@ -69,6 +103,18 @@ export default function CashierShiftsPage() {
     filter: {
       locationId: locationId || undefined,
       status: status || undefined,
+    },
+  });
+  const movementsQuery = useCashMovements({
+    page: movementPage,
+    limit: movementLimit,
+    filter: {
+      cashierShiftId: movementShiftId.trim() || undefined,
+      locationId: movementLocationId || undefined,
+      type: movementType || undefined,
+      reason: movementReason || undefined,
+      dateFrom: movementDateFrom || undefined,
+      dateTo: movementDateTo || undefined,
     },
   });
   const filteredShifts = useMemo(() => {
@@ -91,10 +137,37 @@ export default function CashierShiftsPage() {
         .some((value) => value?.toLowerCase().includes(keyword)),
     );
   }, [search, shiftsQuery.data?.data]);
+  const filteredMovements = useMemo(() => {
+    const movements = movementsQuery.data?.data ?? [];
+    const keyword = movementSearch.trim().toLowerCase();
+
+    if (!keyword) {
+      return movements;
+    }
+
+    return movements.filter((movement) =>
+      [
+        movement.id,
+        movement.cashierShiftId,
+        movement.locationName,
+        movement.createdByUserName,
+        movement.type,
+        movement.reason,
+        movement.notes,
+      ]
+        .filter(Boolean)
+        .some((value) => value?.toLowerCase().includes(keyword)),
+    );
+  }, [movementSearch, movementsQuery.data?.data]);
 
   function handlePageSizeChange(nextLimit: number) {
     setLimit(nextLimit);
     setPage(1);
+  }
+
+  function handleMovementPageSizeChange(nextLimit: number) {
+    setMovementLimit(nextLimit);
+    setMovementPage(1);
   }
 
   const columns = useMemo<ColumnDef<CashierShiftEntity>[]>(
@@ -193,6 +266,63 @@ export default function CashierShiftsPage() {
     ],
     [],
   );
+  const movementColumns = useMemo<ColumnDef<CashMovementEntity>[]>(
+    () => [
+      {
+        accessorKey: "createdAt",
+        header: "Date",
+        cell: ({ row }) => formatDate(row.original.createdAt),
+      },
+      {
+        accessorKey: "locationName",
+        header: "Location / Shift",
+        cell: ({ row }) => (
+          <div>
+            <p className="font-medium">{row.original.locationName}</p>
+            <p className="text-xs text-muted-foreground">
+              {row.original.cashierShiftId}
+            </p>
+          </div>
+        ),
+      },
+      {
+        accessorKey: "createdByUserName",
+        header: "Created by",
+      },
+      {
+        accessorKey: "type",
+        header: "Type",
+        cell: ({ row }) => (
+          <Badge
+            className={getMovementTypeClassName(row.original.type)}
+            variant="outline"
+          >
+            {formatLabel(row.original.type)}
+          </Badge>
+        ),
+      },
+      {
+        accessorKey: "reason",
+        header: "Reason",
+        cell: ({ row }) => formatLabel(row.original.reason),
+      },
+      {
+        accessorKey: "amount",
+        header: () => <div className="text-right">Amount</div>,
+        cell: ({ row }) => (
+          <div className="text-right font-medium">
+            {formatCurrency(row.original.amount)}
+          </div>
+        ),
+      },
+      {
+        accessorKey: "notes",
+        header: "Notes",
+        cell: ({ row }) => row.original.notes || "-",
+      },
+    ],
+    [],
+  );
 
   return (
     <div className="space-y-6">
@@ -260,6 +390,110 @@ export default function CashierShiftsPage() {
                   <option value="OPEN">OPEN</option>
                   <option value="CLOSED">CLOSED</option>
                 </select>
+              </div>
+            }
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <ReceiptText className="size-4 text-muted-foreground" />
+            Cash movements
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <DataTable
+            columns={movementColumns}
+            data={filteredMovements}
+            emptyMessage="No cash movements found."
+            isLoading={movementsQuery.isLoading}
+            pagination={{
+              meta: movementsQuery.data?.meta,
+              onPageChange: setMovementPage,
+              onPageSizeChange: handleMovementPageSizeChange,
+              pageSizeOptions: [10, 25, 50],
+            }}
+            toolbar={
+              <div className="grid w-full gap-2 lg:grid-cols-[minmax(14rem,1fr)_11rem_11rem_11rem_11rem_11rem_11rem]">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted-foreground" />
+                  <Input
+                    className="pl-9"
+                    onChange={(event) => setMovementSearch(event.target.value)}
+                    placeholder="Search movement"
+                    value={movementSearch}
+                  />
+                </div>
+                <Input
+                  onChange={(event) => {
+                    setMovementShiftId(event.target.value);
+                    setMovementPage(1);
+                  }}
+                  placeholder="Shift ID"
+                  value={movementShiftId}
+                />
+                <select
+                  className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
+                  onChange={(event) => {
+                    setMovementLocationId(event.target.value);
+                    setMovementPage(1);
+                  }}
+                  value={movementLocationId}
+                >
+                  <option value="">All locations</option>
+                  {(locationsQuery.data?.data ?? []).map((location) => (
+                    <option key={location.id} value={location.id}>
+                      {location.name}
+                    </option>
+                  ))}
+                </select>
+                <select
+                  className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
+                  onChange={(event) => {
+                    setMovementType(event.target.value as "" | CashMovementTypeValue);
+                    setMovementPage(1);
+                  }}
+                  value={movementType}
+                >
+                  <option value="">All types</option>
+                  <option value={CashMovementType.CashIn}>Cash in</option>
+                  <option value={CashMovementType.CashOut}>Cash out</option>
+                </select>
+                <select
+                  className="h-9 rounded-lg border border-input bg-background px-2 text-sm"
+                  onChange={(event) => {
+                    setMovementReason(
+                      event.target.value as "" | CashMovementReasonValue,
+                    );
+                    setMovementPage(1);
+                  }}
+                  value={movementReason}
+                >
+                  <option value="">All reasons</option>
+                  {Object.values(CashMovementReason).map((reason) => (
+                    <option key={reason} value={reason}>
+                      {formatLabel(reason)}
+                    </option>
+                  ))}
+                </select>
+                <Input
+                  onChange={(event) => {
+                    setMovementDateFrom(event.target.value);
+                    setMovementPage(1);
+                  }}
+                  type="date"
+                  value={movementDateFrom}
+                />
+                <Input
+                  onChange={(event) => {
+                    setMovementDateTo(event.target.value);
+                    setMovementPage(1);
+                  }}
+                  type="date"
+                  value={movementDateTo}
+                />
               </div>
             }
           />
