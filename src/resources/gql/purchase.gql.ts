@@ -1,8 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import type {
+  CreatePurchaseFromSuggestionsInput,
   CreatePurchaseInput,
   PurchaseEntity,
+  PurchaseSuggestionEntity,
+  PurchaseSuggestionFilterInput,
   ReceivePurchaseInput,
   UpdatePurchaseInput,
   UpdatePurchaseStatusInput,
@@ -144,9 +147,57 @@ const RECEIVE_PURCHASE = /* GraphQL */ `
   }
 `;
 
+const GET_PURCHASE_SUGGESTIONS = /* GraphQL */ `
+  query PurchaseSuggestions($filter: PurchaseSuggestionFilterInput) {
+    purchaseSuggestions(filter: $filter) {
+      productId
+      productName
+      sku
+      barcode
+      locationId
+      locationName
+      stockOnHand
+      minimumStock
+      suggestedQty
+      lastCostPrice
+      estimatedAmount
+      warningStatus
+    }
+  }
+`;
+
+const CREATE_PURCHASE_FROM_SUGGESTIONS = /* GraphQL */ `
+  mutation CreatePurchaseFromSuggestions($input: CreatePurchaseFromSuggestionsInput!) {
+    createPurchaseFromSuggestions(input: $input) {
+      id
+      purchaseNo
+      purchaseDate
+      supplierId
+      supplierName
+      locationId
+      locationName
+      status
+      totalAmount
+      createdAt
+      items {
+        id
+        productId
+        productName
+        qty
+        costPrice
+        subtotal
+      }
+    }
+  }
+`;
+
 type PurchaseListParams = {
   page?: number;
   limit?: number;
+};
+
+type PurchaseSuggestionParams = {
+  filter?: PurchaseSuggestionFilterInput;
 };
 
 export const purchaseKeys = {
@@ -154,6 +205,9 @@ export const purchaseKeys = {
   lists: () => [...purchaseKeys.all, "list"] as const,
   list: (params: PurchaseListParams) =>
     [...purchaseKeys.lists(), params] as const,
+  suggestions: () => [...purchaseKeys.all, "suggestions"] as const,
+  suggestionList: (params: PurchaseSuggestionParams) =>
+    [...purchaseKeys.suggestions(), params] as const,
 };
 
 export function usePurchases(params: PurchaseListParams = {}) {
@@ -173,6 +227,18 @@ export function usePurchases(params: PurchaseListParams = {}) {
   });
 }
 
+export function usePurchaseSuggestions(params: PurchaseSuggestionParams = {}) {
+  return useQuery({
+    queryKey: purchaseKeys.suggestionList(params),
+    queryFn: () =>
+      gqlClient.request<{ purchaseSuggestions: PurchaseSuggestionEntity[] }>(
+        GET_PURCHASE_SUGGESTIONS,
+        params,
+      ),
+    select: (data) => data.purchaseSuggestions,
+  });
+}
+
 export function useCreatePurchase() {
   const queryClient = useQueryClient();
 
@@ -183,6 +249,25 @@ export function useCreatePurchase() {
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: purchaseKeys.lists() });
+    },
+    onError: (error: unknown) => {
+      throw ErrorHelper.parse(error);
+    },
+  });
+}
+
+export function useCreatePurchaseFromSuggestions() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: CreatePurchaseFromSuggestionsInput) =>
+      gqlClient.request<{ createPurchaseFromSuggestions: PurchaseEntity }>(
+        CREATE_PURCHASE_FROM_SUGGESTIONS,
+        { input },
+      ),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: purchaseKeys.lists() });
+      queryClient.invalidateQueries({ queryKey: purchaseKeys.suggestions() });
     },
     onError: (error: unknown) => {
       throw ErrorHelper.parse(error);

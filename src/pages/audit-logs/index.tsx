@@ -33,26 +33,69 @@ const dateFormatter = new Intl.DateTimeFormat("id-ID", {
 });
 
 const auditModuleOptions = [
-  "sales",
-  "purchases",
   "cashier-shifts",
   "inventory",
+  "locations",
+  "numbering-configurations",
+  "products",
+  "promotions",
+  "purchases",
+  "receipt-configurations",
+  "roles",
+  "sales",
   "stock-opnames",
+  "suppliers",
+  "units",
+  "users",
 ];
 
 const auditActionOptions = [
+  "adjust",
+  "cancel",
+  "close",
   "create",
+  "delete",
+  "finalize",
+  "open",
+  "receive",
   "return",
+  "set_initial_stock",
+  "set_minimum_stock",
+  "transfer",
   "update",
   "update_status",
-  "receive",
-  "cancel",
-  "open",
-  "close",
-  "adjust",
-  "set_initial_stock",
-  "transfer",
-  "finalize",
+];
+
+const metadataSummaryKeys = [
+  "invoiceNo",
+  "purchaseNo",
+  "opnameNo",
+  "productName",
+  "supplierName",
+  "locationName",
+  "unitName",
+  "promotionName",
+  "roleName",
+  "userEmail",
+  "userFullName",
+  "storeName",
+  "documentType",
+  "minimumStock",
+  "totalAmount",
+  "qty",
+  "name",
+  "email",
+  "sku",
+  "barcode",
+];
+
+const nestedMetadataSummaryKeys = [
+  "after",
+  "before",
+  "input",
+  "data",
+  "config",
+  "setting",
 ];
 
 function formatDate(value: unknown) {
@@ -95,19 +138,24 @@ function summarizeMetadata(metadata?: string | null) {
     return metadata || "-";
   }
 
-  const preferredKeys = [
-    "invoiceNo",
-    "purchaseNo",
-    "opnameNo",
-    "locationName",
-    "totalAmount",
-    "qty",
-    "productName",
-    "supplierName",
-  ];
-  const parts = preferredKeys
-    .filter((key) => parsed[key] !== undefined && parsed[key] !== null)
-    .map((key) => `${formatLabel(key)}: ${String(parsed[key])}`);
+  const flattenedMetadata = {
+    ...parsed,
+    ...nestedMetadataSummaryKeys.reduce<Record<string, unknown>>((result, key) => {
+      const value = parsed[key];
+
+      if (value && typeof value === "object" && !Array.isArray(value)) {
+        return { ...result, ...(value as Record<string, unknown>) };
+      }
+
+      return result;
+    }, {}),
+  };
+  const parts = metadataSummaryKeys
+    .filter(
+      (key) =>
+        flattenedMetadata[key] !== undefined && flattenedMetadata[key] !== null,
+    )
+    .map((key) => `${formatLabel(key)}: ${String(flattenedMetadata[key])}`);
 
   if (parts.length > 0) {
     return parts.slice(0, 3).join(" · ");

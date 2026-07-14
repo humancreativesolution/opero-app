@@ -8,6 +8,7 @@ import {
   PackageSearch,
   Plus,
   Search,
+  WandSparkles,
   XCircle,
 } from "lucide-react";
 import { useMemo, useState } from "react";
@@ -33,6 +34,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { PurchaseFormSheet } from "@/features/purchase/components/purchase-form-sheet.component";
+import { PurchaseSuggestionsSheet } from "@/features/purchase/components/purchase-suggestions-sheet.component";
 import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
 import { PERMISSIONS } from "@/components/rbac/permissions";
 import { canAccess } from "@/components/rbac/rbac.utils";
@@ -106,6 +108,7 @@ export default function PurchasesPage() {
   const [limit] = useState(50);
   const [search, setSearch] = useState("");
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [suggestionsSheetOpen, setSuggestionsSheetOpen] = useState(false);
   const [selectedPurchase, setSelectedPurchase] =
     useState<PurchaseEntity | null>(null);
   const [statusAction, setStatusAction] =
@@ -376,12 +379,23 @@ export default function PurchasesPage() {
             Manage purchase orders, stock-in flow, and supplier buying history.
           </p>
         </div>
-        <PermissionGate anyOf={[PERMISSIONS.purchases.create]}>
-          <Button onClick={handleCreate}>
-            <Plus className="size-4" />
-            Create purchase
-          </Button>
-        </PermissionGate>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+          <PermissionGate anyOf={[PERMISSIONS.purchases.create]}>
+            <Button
+              onClick={() => setSuggestionsSheetOpen(true)}
+              variant="outline"
+            >
+              <WandSparkles className="size-4" />
+              Suggestions
+            </Button>
+          </PermissionGate>
+          <PermissionGate anyOf={[PERMISSIONS.purchases.create]}>
+            <Button onClick={handleCreate}>
+              <Plus className="size-4" />
+              Create purchase
+            </Button>
+          </PermissionGate>
+        </div>
       </div>
 
       <Card>
@@ -421,6 +435,11 @@ export default function PurchasesPage() {
         }}
         open={sheetOpen}
         purchase={selectedPurchase}
+      />
+
+      <PurchaseSuggestionsSheet
+        onOpenChange={setSuggestionsSheetOpen}
+        open={suggestionsSheetOpen}
       />
 
       <Dialog

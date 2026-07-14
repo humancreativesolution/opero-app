@@ -204,6 +204,13 @@ export type CreatePromotionInput = {
   type: PromotionType;
 };
 
+export type CreatePurchaseFromSuggestionsInput = {
+  items: Array<PurchaseSuggestionItemInput>;
+  locationId: Scalars['ID']['input'];
+  purchaseDate?: InputMaybe<Scalars['String']['input']>;
+  supplierId: Scalars['ID']['input'];
+};
+
 export type CreatePurchaseInput = {
   items: Array<PurchaseItemInput>;
   locationId: Scalars['ID']['input'];
@@ -405,6 +412,18 @@ export type LoginInput = {
   subdomain?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type MinimumStockSettingEntity = {
+  __typename?: 'MinimumStockSettingEntity';
+  createdAt: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  locationId: Scalars['ID']['output'];
+  locationName: Scalars['String']['output'];
+  minimumStock: Scalars['Int']['output'];
+  productId: Scalars['ID']['output'];
+  productName: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
 export type Mutation = {
   __typename?: 'Mutation';
   adjustStock: InventoryTransactionEntity;
@@ -416,6 +435,7 @@ export type Mutation = {
   createProduct: ProductEntity;
   createPromotion: PromotionEntity;
   createPurchase: PurchaseEntity;
+  createPurchaseFromSuggestions: PurchaseEntity;
   createRole: RoleEntity;
   createSale: SaleEntity;
   createSaleReturn: SaleEntity;
@@ -441,6 +461,7 @@ export type Mutation = {
   removeUnit: UnitEntity;
   removeUser: UserEntity;
   setInitialStock: Array<InventoryTransactionEntity>;
+  setMinimumStock: MinimumStockSettingEntity;
   transferStock: Array<InventoryTransactionEntity>;
   updateCustomer: CustomerEntity;
   updateLocation: LocationEntity;
@@ -501,6 +522,11 @@ export type MutationCreatePromotionArgs = {
 
 export type MutationCreatePurchaseArgs = {
   input: CreatePurchaseInput;
+};
+
+
+export type MutationCreatePurchaseFromSuggestionsArgs = {
+  input: CreatePurchaseFromSuggestionsInput;
 };
 
 
@@ -626,6 +652,11 @@ export type MutationRemoveUserArgs = {
 
 export type MutationSetInitialStockArgs = {
   input: SetInitialStockInput;
+};
+
+
+export type MutationSetMinimumStockArgs = {
+  input: SetMinimumStockInput;
 };
 
 
@@ -1053,6 +1084,32 @@ export const PurchaseStatus = {
 } as const;
 
 export type PurchaseStatus = typeof PurchaseStatus[keyof typeof PurchaseStatus];
+export type PurchaseSuggestionEntity = {
+  __typename?: 'PurchaseSuggestionEntity';
+  barcode?: Maybe<Scalars['String']['output']>;
+  estimatedAmount: Scalars['Float']['output'];
+  lastCostPrice: Scalars['Float']['output'];
+  locationId: Scalars['ID']['output'];
+  locationName: Scalars['String']['output'];
+  minimumStock: Scalars['Int']['output'];
+  productId: Scalars['ID']['output'];
+  productName: Scalars['String']['output'];
+  sku?: Maybe<Scalars['String']['output']>;
+  stockOnHand: Scalars['Int']['output'];
+  suggestedQty: Scalars['Int']['output'];
+  warningStatus: StockWarningStatus;
+};
+
+export type PurchaseSuggestionFilterInput = {
+  locationId?: InputMaybe<Scalars['ID']['input']>;
+  productId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type PurchaseSuggestionItemInput = {
+  productId: Scalars['ID']['input'];
+  qty?: InputMaybe<Scalars['Int']['input']>;
+};
+
 export type PurchaseSummary = {
   __typename?: 'PurchaseSummary';
   partiallyReceivedPurchaseCount: Scalars['Int']['output'];
@@ -1078,6 +1135,7 @@ export type Query = {
   locations: PaginatedLocations;
   locationsByTenant: Array<LocationEntity>;
   me: UserResponse;
+  minimumStockSettings: Array<MinimumStockSettingEntity>;
   numberingConfiguration: NumberingConfigurationEntity;
   numberingConfigurations: Array<NumberingConfigurationEntity>;
   permissions: Array<PermissionEntity>;
@@ -1091,6 +1149,7 @@ export type Query = {
   promotions: PaginatedPromotions;
   promotionsByTenant: Array<PromotionEntity>;
   purchase: PurchaseEntity;
+  purchaseSuggestions: Array<PurchaseSuggestionEntity>;
   purchases: Array<PurchaseEntity>;
   receiptConfiguration: ReceiptConfigurationEntity;
   receiptConfigurations: Array<ReceiptConfigurationEntity>;
@@ -1106,6 +1165,7 @@ export type Query = {
   salesReportTransactionsCsv: Scalars['String']['output'];
   stockOpname: StockOpnameEntity;
   stockOpnames: PaginatedStockOpnames;
+  stockWarnings: Array<StockWarningEntity>;
   supplier?: Maybe<SupplierEntity>;
   suppliers: PaginatedSuppliers;
   suppliersByTenant: Array<SupplierEntity>;
@@ -1205,6 +1265,11 @@ export type QueryLocationsByTenantArgs = {
 };
 
 
+export type QueryMinimumStockSettingsArgs = {
+  filter?: InputMaybe<InventoryFilterInput>;
+};
+
+
 export type QueryNumberingConfigurationArgs = {
   documentType: NumberingDocumentType;
 };
@@ -1255,6 +1320,11 @@ export type QueryPromotionsByTenantArgs = {
 
 export type QueryPurchaseArgs = {
   id: Scalars['String']['input'];
+};
+
+
+export type QueryPurchaseSuggestionsArgs = {
+  filter?: InputMaybe<PurchaseSuggestionFilterInput>;
 };
 
 
@@ -1330,6 +1400,11 @@ export type QueryStockOpnamesArgs = {
   filter?: InputMaybe<StockOpnameFilterInput>;
   limit?: Scalars['Int']['input'];
   page?: Scalars['Int']['input'];
+};
+
+
+export type QueryStockWarningsArgs = {
+  filter?: InputMaybe<StockWarningFilterInput>;
 };
 
 
@@ -1668,6 +1743,12 @@ export type SetInitialStockInput = {
   notes?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type SetMinimumStockInput = {
+  locationId: Scalars['ID']['input'];
+  minimumStock: Scalars['Int']['input'];
+  productId: Scalars['ID']['input'];
+};
+
 export type StockAdjustmentInput = {
   adjustmentType: AdjustmentType;
   locationId: Scalars['ID']['input'];
@@ -1735,6 +1816,31 @@ export type StockTransferInput = {
   toLocationId: Scalars['ID']['input'];
 };
 
+export type StockWarningEntity = {
+  __typename?: 'StockWarningEntity';
+  barcode?: Maybe<Scalars['String']['output']>;
+  locationId: Scalars['ID']['output'];
+  locationName: Scalars['String']['output'];
+  minimumStock: Scalars['Int']['output'];
+  productId: Scalars['ID']['output'];
+  productName: Scalars['String']['output'];
+  sku?: Maybe<Scalars['String']['output']>;
+  status: StockWarningStatus;
+  stockOnHand: Scalars['Int']['output'];
+};
+
+export type StockWarningFilterInput = {
+  locationId?: InputMaybe<Scalars['ID']['input']>;
+  productId?: InputMaybe<Scalars['ID']['input']>;
+  status?: InputMaybe<StockWarningStatus>;
+};
+
+export const StockWarningStatus = {
+  LowStock: 'LOW_STOCK',
+  OutOfStock: 'OUT_OF_STOCK'
+} as const;
+
+export type StockWarningStatus = typeof StockWarningStatus[keyof typeof StockWarningStatus];
 export type SupplierEntity = {
   __typename?: 'SupplierEntity';
   address?: Maybe<Scalars['String']['output']>;
