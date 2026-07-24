@@ -2,6 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
 
+import { GRAPHQL_FORBIDDEN_EVENT } from "@/libs/graphql";
 import {
   AUTH_SESSION_CHANGED_EVENT,
   AUTH_SESSION_EXPIRED_EVENT,
@@ -47,14 +48,23 @@ export function AuthSessionGuard() {
       }, delay);
     }
 
+    function showForbiddenAlert() {
+      toast.error("You don't have access", {
+        description: "Your role does not have permission for this action.",
+        id: "graphql-forbidden",
+      });
+    }
+
     window.addEventListener(AUTH_SESSION_CHANGED_EVENT, scheduleExpiryCheck);
     window.addEventListener(AUTH_SESSION_EXPIRED_EVENT, redirectToLogin);
+    window.addEventListener(GRAPHQL_FORBIDDEN_EVENT, showForbiddenAlert);
     scheduleExpiryCheck();
 
     return () => {
       window.clearTimeout(timeoutId);
       window.removeEventListener(AUTH_SESSION_CHANGED_EVENT, scheduleExpiryCheck);
       window.removeEventListener(AUTH_SESSION_EXPIRED_EVENT, redirectToLogin);
+      window.removeEventListener(GRAPHQL_FORBIDDEN_EVENT, showForbiddenAlert);
     };
   }, [navigate]);
 

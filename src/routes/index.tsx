@@ -24,6 +24,10 @@ import { PERMISSIONS } from "@/components/rbac/permissions";
 import { withPermission } from "@/components/rbac/with-permission";
 import { AppLayout } from "@/layouts/app/app.layout";
 import { PosLayout } from "@/layouts/pos/pos.layout";
+import {
+  SettingsIndexRoute,
+  UsersIndexRoute,
+} from "@/routes/permission-redirects";
 import { ProtectedRoute } from "@/routes/protected-route";
 import { PublicRoute } from "@/routes/public-route";
 
@@ -40,10 +44,10 @@ const CustomersRoute = withPermission(CustomersPage, {
   anyOf: [PERMISSIONS.customers.read],
 });
 const SalesRoute = withPermission(SalesPage, {
-  anyOf: [PERMISSIONS.receipt.view, PERMISSIONS.reports.view],
+  anyOf: [PERMISSIONS.sales.read, PERMISSIONS.reports.view],
 });
 const CashierShiftsRoute = withPermission(CashierShiftsPage, {
-  anyOf: [PERMISSIONS.reports.view],
+  anyOf: [PERMISSIONS.pos.transaction, PERMISSIONS.reports.view],
 });
 const SuppliersRoute = withPermission(SuppliersPage, {
   anyOf: [PERMISSIONS.suppliers.read],
@@ -58,16 +62,16 @@ const PurchasesRoute = withPermission(PurchasesPage, {
   anyOf: [PERMISSIONS.purchases.read],
 });
 const InventoryRoute = withPermission(InventoryPage, {
-  anyOf: [PERMISSIONS.stock.read],
+  anyOf: [PERMISSIONS.inventory.read, PERMISSIONS.stock.read],
 });
 const StockOpnamesRoute = withPermission(StockOpnamesPage, {
-  anyOf: [PERMISSIONS.stock.read],
+  anyOf: [PERMISSIONS.inventory.read, PERMISSIONS.stock.read],
 });
 const ReportsRoute = withPermission(ReportsPage, {
   anyOf: [PERMISSIONS.reports.view],
 });
 const AuditLogsRoute = withPermission(AuditLogsPage, {
-  anyOf: [PERMISSIONS.reports.view],
+  anyOf: [PERMISSIONS.auditLogs.read],
 });
 const StaffRoute = withPermission(() => <UsersPage view="staff" />, {
   anyOf: [PERMISSIONS.users.read],
@@ -75,17 +79,29 @@ const StaffRoute = withPermission(() => <UsersPage view="staff" />, {
 const RolesRoute = withPermission(() => <UsersPage view="roles" />, {
   anyOf: [PERMISSIONS.roles.read],
 });
+
 const ReceiptSettingsRoute = withPermission(() => <SettingsPage view="receipt" />, {
-  anyOf: [PERMISSIONS.settings.read, PERMISSIONS.settings.update],
+  anyOf: [
+    PERMISSIONS.receiptConfig.read,
+    PERMISSIONS.receiptConfig.update,
+  ],
 });
 const NumberingSettingsRoute = withPermission(
   () => <SettingsPage view="numbering" />,
   {
-    anyOf: [PERMISSIONS.settings.read, PERMISSIONS.settings.update],
+    anyOf: [
+      PERMISSIONS.numberingConfig.read,
+      PERMISSIONS.numberingConfig.update,
+    ],
   },
 );
-const SettingsRoute = withPermission(() => <SettingsPage view="receipt" />, {
-  anyOf: [PERMISSIONS.settings.read, PERMISSIONS.settings.update],
+const SettingsRoute = withPermission(SettingsIndexRoute, {
+  anyOf: [
+    PERMISSIONS.receiptConfig.read,
+    PERMISSIONS.receiptConfig.update,
+    PERMISSIONS.numberingConfig.read,
+    PERMISSIONS.numberingConfig.update,
+  ],
 });
 const PosRoute = withPermission(PosPage, {
   anyOf: [PERMISSIONS.pos.access],
@@ -118,7 +134,7 @@ const routes = [
       {
         path: "users",
         children: [
-          { index: true, element: <Navigate replace to="/users/staff" /> },
+          { index: true, element: <UsersIndexRoute /> },
           { path: "staff", element: <StaffRoute /> },
           { path: "roles", element: <RolesRoute /> },
         ],

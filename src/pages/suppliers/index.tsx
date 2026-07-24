@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Edit, Plus, Search, Truck } from "lucide-react";
+import { Edit, MoreVertical, Plus, Search, Truck } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { DataTable } from "@/components/data-table/data-table.component";
@@ -12,6 +12,7 @@ import { canAccess } from "@/components/rbac/rbac.utils";
 import { SupplierFormSheet } from "@/features/supplier/components/supplier-form-sheet.component";
 import type { SupplierEntity } from "@/graphql/generated";
 import { useSuppliers } from "@/resources/gql/supplier.gql";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function SuppliersPage() {
   const [page, setPage] = useState(1);
@@ -86,14 +87,22 @@ export default function SuppliersPage() {
         cell: ({ row }) => (
           <div className="text-right">
             {canUpdateSupplier ? (
-              <Button
-                onClick={() => handleEdit(row.original)}
-                size="icon-sm"
-                variant="ghost"
-              >
-                <Edit className="size-4" />
-                <span className="sr-only">Edit supplier</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon-sm" variant="ghost">
+                    <MoreVertical className="size-4" />
+                    <span className="sr-only">Open supplier actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {canUpdateSupplier ? (
+                    <DropdownMenuItem onSelect={() => handleEdit(row.original)}>
+                      <Edit className="size-4" />
+                      Edit
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : null}
           </div>
         ),

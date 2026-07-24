@@ -1,12 +1,12 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { RotateCcw, Eye, ReceiptText, Search } from "lucide-react";
+import { ReceiptText, RotateCcw, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { DataTable } from "@/components/data-table/data-table.component";
+import DetailLink from "@/components/detail-link/detail-link.component";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { SaleReturnFormSheet } from "@/features/sale/components/sale-return-form-sheet.component";
 import {
   Dialog,
   DialogContent,
@@ -15,6 +15,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { SaleReturnFormSheet } from "@/features/sale/components/sale-return-form-sheet.component";
 import type { SaleEntity, SaleStatus, SaleType } from "@/graphql/generated";
 import { useSales } from "@/resources/gql/sale.gql";
 
@@ -110,7 +111,7 @@ export default function SalesPage() {
         accessorKey: "invoiceNo",
         header: "Invoice",
         cell: ({ row }) => (
-          <span className="font-medium">{row.original.invoiceNo}</span>
+          <DetailLink title={row.original.invoiceNo} onClick={() => setSelectedSale(row.original)} />
         ),
       },
       {
@@ -185,22 +186,6 @@ export default function SalesPage() {
                   </Badge>
                 ))
               : "-"}
-          </div>
-        ),
-      },
-      {
-        id: "actions",
-        header: () => <div className="text-right">Action</div>,
-        cell: ({ row }) => (
-          <div className="text-right">
-            <Button
-              onClick={() => setSelectedSale(row.original)}
-              size="icon-sm"
-              variant="ghost"
-            >
-              <Eye className="size-4" />
-              <span className="sr-only">View sale detail</span>
-            </Button>
           </div>
         ),
       },

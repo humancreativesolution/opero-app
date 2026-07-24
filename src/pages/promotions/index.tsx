@@ -1,9 +1,9 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Edit, MoreVertical, Plus, Search, Tag, Trash2 } from "lucide-react";
+import { Edit, MoreVertical, Search, Tag } from "lucide-react";
 import { useMemo, useState } from "react";
-import { toast } from "sonner";
 
 import { DataTable } from "@/components/data-table/data-table.component";
+import DetailLink from "@/components/detail-link/detail-link.component";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,6 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -23,19 +22,14 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Input } from "@/components/ui/input";
 import { PromotionFormSheet } from "@/features/promotion/components/promotion-form-sheet.component";
-import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
-import { PERMISSIONS } from "@/components/rbac/permissions";
-import { canAccess } from "@/components/rbac/rbac.utils";
 import type {
   PromotionEntity,
   PromotionStatus,
   PromotionType,
 } from "@/graphql/generated";
-import { ErrorHelper } from "@/libs/error";
-import {
-  usePromotions,
-  useRemovePromotion,
-} from "@/resources/gql/promotion.gql";
+import { usePromotions } from "@/resources/gql/promotion.gql";
+import { canAccess } from "@/components/rbac/rbac.utils";
+import { PERMISSIONS } from "@/components/rbac/permissions";
 
 const currencyFormatter = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -94,10 +88,7 @@ export default function PromotionsPage() {
   const [search, setSearch] = useState("");
   const [status, setStatus] = useState<"" | PromotionStatus>("");
   const [sheetOpen, setSheetOpen] = useState(false);
-  const [selectedPromotion, setSelectedPromotion] =
-    useState<PromotionEntity | null>(null);
-  const [deletePromotion, setDeletePromotion] =
-    useState<PromotionEntity | null>(null);
+  const [selectedPromotion, setSelectedPromotion] = useState<PromotionEntity | null>(null);
   const promotionsQuery = usePromotions({
     page,
     limit,
@@ -106,18 +97,12 @@ export default function PromotionsPage() {
       status: status || undefined,
     },
   });
-  const removePromotion = useRemovePromotion();
   const canUpdatePromotion = canAccess({
     anyOf: [PERMISSIONS.promotions.update],
   });
   const canDeletePromotion = canAccess({
     anyOf: [PERMISSIONS.promotions.delete],
   });
-
-  function handleCreate() {
-    setSelectedPromotion(null);
-    setSheetOpen(true);
-  }
 
   function handleEdit(promotion: PromotionEntity) {
     setSelectedPromotion(promotion);
@@ -129,34 +114,16 @@ export default function PromotionsPage() {
     setPage(1);
   }
 
-  async function handleDelete() {
-    if (!deletePromotion) {
-      return;
-    }
-
-    try {
-      await removePromotion.mutateAsync(deletePromotion.id);
-      toast.success("Promotion deleted");
-      setDeletePromotion(null);
-    } catch (error) {
-      toast.error("Failed to delete promotion", {
-        description: ErrorHelper.parse(error).message,
-      });
-    }
-  }
-
   const columns = useMemo<ColumnDef<PromotionEntity>[]>(
     () => [
       {
         accessorKey: "name",
         header: "Promotion",
         cell: ({ row }) => (
-          <div>
-            <p className="font-medium">{row.original.name}</p>
-            <p className="text-xs text-muted-foreground">
-              {row.original.description || "No description"}
-            </p>
-          </div>
+          <DetailLink
+            onClick={() => setSelectedPromotion(row.original)}
+            title={row.original.name}
+          />
         ),
       },
       {
@@ -204,7 +171,7 @@ export default function PromotionsPage() {
         header: () => <div className="text-right">Action</div>,
         cell: ({ row }) => (
           <div className="text-right">
-            {canUpdatePromotion || canDeletePromotion ? (
+            {canUpdatePromotion ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button size="icon-sm" variant="ghost">
@@ -213,21 +180,10 @@ export default function PromotionsPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  {canUpdatePromotion ? (
-                    <DropdownMenuItem onSelect={() => handleEdit(row.original)}>
-                      <Edit className="size-4" />
-                      Edit
-                    </DropdownMenuItem>
-                  ) : null}
-                  {canDeletePromotion ? (
-                    <DropdownMenuItem
-                      onSelect={() => setDeletePromotion(row.original)}
-                      variant="destructive"
-                    >
-                      <Trash2 className="size-4" />
-                      Delete
-                    </DropdownMenuItem>
-                  ) : null}
+                  <DropdownMenuItem onSelect={() => handleEdit(row.original)}>
+                    <Edit className="size-4" />
+                    Edit
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : null}
@@ -235,24 +191,16 @@ export default function PromotionsPage() {
         ),
       },
     ],
-    [canDeletePromotion, canUpdatePromotion],
+    [],
   );
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-        <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Promotions</h1>
-          <p className="text-sm text-muted-foreground">
-            Manage POS discounts calculated by backend at checkout.
-          </p>
-        </div>
-        <PermissionGate anyOf={[PERMISSIONS.promotions.create]}>
-          <Button onClick={handleCreate}>
-            <Plus className="size-4" />
-            Create promotion
-          </Button>
-        </PermissionGate>
+      <div>
+        <h1 className="text-2xl font-semibold tracking-tight">Promotions</h1>
+        <p className="text-sm text-muted-foreground">
+          Manage POS discounts calculated by backend at checkout.
+        </p>
       </div>
 
       <Card>
@@ -315,37 +263,116 @@ export default function PromotionsPage() {
       <Dialog
         onOpenChange={(open) => {
           if (!open) {
-            setDeletePromotion(null);
+            setSelectedPromotion(null);
           }
         }}
-        open={Boolean(deletePromotion)}
+        open={Boolean(selectedPromotion)}
       >
-        <DialogContent>
+        <DialogContent className="sm:max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Delete promotion</DialogTitle>
-            <DialogDescription>
-              This will remove promotion "{deletePromotion?.name}". POS prices will
-              be recalculated after deletion.
-            </DialogDescription>
+            <div className="flex items-start justify-between gap-4 pr-8">
+              <div>
+                <DialogTitle>{selectedPromotion?.name}</DialogTitle>
+                <DialogDescription>
+                  {selectedPromotion ? `${getTypeLabel(selectedPromotion.type)} · ${formatDate(selectedPromotion.createdAt)}` : null}
+                </DialogDescription>
+              </div>
+            </div>
+            {selectedPromotion?.description ? (
+              <p className="mt-2 text-sm text-muted-foreground">{selectedPromotion.description}</p>
+            ) : null}
           </DialogHeader>
-          <DialogFooter>
-            <Button
-              disabled={removePromotion.isPending}
-              onClick={() => setDeletePromotion(null)}
-              type="button"
-              variant="outline"
-            >
-              Cancel
-            </Button>
-            <Button
-              disabled={removePromotion.isPending}
-              onClick={handleDelete}
-              type="button"
-              variant="destructive"
-            >
-              Delete promotion
-            </Button>
-          </DialogFooter>
+
+          {selectedPromotion ? (
+            <div className="space-y-6">
+              <div className="grid gap-2 rounded-lg border bg-muted/30 p-3 text-sm sm:grid-cols-2">
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Type</span>
+                  <span className="font-medium">{getTypeLabel(selectedPromotion.type)}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Status</span>
+                  <span className="font-medium">{selectedPromotion.status}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Channel</span>
+                  <span className="font-medium">{selectedPromotion.channel}</span>
+                </div>
+                <div className="flex justify-between gap-3">
+                  <span className="text-muted-foreground">Discount</span>
+                  <span className="font-medium">{formatDiscount(selectedPromotion)}</span>
+                </div>
+              </div>
+
+              {selectedPromotion.minQty ? (
+                <div className="grid gap-2 rounded-lg border bg-muted/30 p-3 text-sm">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted-foreground">Minimum qty</span>
+                    <span className="font-medium">{selectedPromotion.minQty}</span>
+                  </div>
+                </div>
+              ) : null}
+
+              {selectedPromotion.minSubtotal ? (
+                <div className="grid gap-2 rounded-lg border bg-muted/30 p-3 text-sm">
+                  <div className="flex justify-between gap-3">
+                    <span className="text-muted-foreground">Minimum subtotal</span>
+                    <span className="font-medium">
+                      {currencyFormatter.format(selectedPromotion.minSubtotal)}
+                    </span>
+                  </div>
+                </div>
+              ) : null}
+
+              <div className="grid gap-2 rounded-lg border bg-muted/30 p-3 text-sm">
+                <h3 className="mb-2 text-sm font-medium">Period</h3>
+                <div className="space-y-2">
+                  {selectedPromotion.startsAt ? (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Starts at</span>
+                      <span className="font-medium">{formatDate(selectedPromotion.startsAt)}</span>
+                    </div>
+                  ) : null}
+                  {selectedPromotion.endsAt ? (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Ends at</span>
+                      <span className="font-medium">{formatDate(selectedPromotion.endsAt)}</span>
+                    </div>
+                  ) : null}
+                </div>
+              </div>
+
+              <div className="grid gap-2 rounded-lg border bg-muted/30 p-3 text-sm">
+                <h3 className="mb-2 text-sm font-medium">Scope</h3>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between text-sm">
+                    <span className="text-muted-foreground">Apply to all products</span>
+                    <span className="font-medium">{selectedPromotion.applyToAllProducts ? "Yes" : "No"}</span>
+                  </div>
+                  {!selectedPromotion.applyToAllProducts && selectedPromotion.productIds && selectedPromotion.productIds.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {selectedPromotion.productIds.map((id, idx) => (
+                        <Badge key={id} variant="secondary">
+                          {idx < 3 ? `Product ${idx + 1}` : "..."}
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : null}
+                  {selectedPromotion.locationIds && selectedPromotion.locationIds.length > 0 ? (
+                    <div className="flex flex-wrap gap-1">
+                      {selectedPromotion.locationIds.map((id) => (
+                        <Badge key={id} variant="outline">
+                          Location
+                        </Badge>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">Applies to all locations</p>
+                  )}
+                </div>
+              </div>
+            </div>
+          ) : null}
         </DialogContent>
       </Dialog>
     </div>

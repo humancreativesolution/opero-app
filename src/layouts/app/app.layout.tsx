@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import { NavLink, Outlet, useLocation } from "react-router-dom";
 
+import { NotificationBell } from "@/components/notifications/notification-bell.component";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AuthMenu } from "@/features/auth/components/auth-menu.component";
@@ -78,14 +79,16 @@ const menuGroups: MenuGroup[] = [
         path: "/sales",
         icon: ReceiptText,
         permissions: {
-          anyOf: [PERMISSIONS.receipt.view, PERMISSIONS.reports.view],
+          anyOf: [PERMISSIONS.sales.read, PERMISSIONS.reports.view],
         },
       },
       {
         label: "Cashier Shifts",
         path: "/cashier-shifts",
         icon: ReceiptText,
-        permissions: { anyOf: [PERMISSIONS.reports.view] },
+        permissions: {
+          anyOf: [PERMISSIONS.pos.transaction, PERMISSIONS.reports.view],
+        },
       },
       {
         label: "Promotions",
@@ -114,13 +117,17 @@ const menuGroups: MenuGroup[] = [
         label: "Inventory",
         path: "/inventory",
         icon: Boxes,
-        permissions: { anyOf: [PERMISSIONS.stock.read] },
+        permissions: {
+          anyOf: [PERMISSIONS.inventory.read, PERMISSIONS.stock.read],
+        },
       },
       {
         label: "Stock Opname",
         path: "/stock-opnames",
         icon: ClipboardCheck,
-        permissions: { anyOf: [PERMISSIONS.stock.read] },
+        permissions: {
+          anyOf: [PERMISSIONS.inventory.read, PERMISSIONS.stock.read],
+        },
       },
       {
         label: "Locations",
@@ -166,7 +173,7 @@ const menuGroups: MenuGroup[] = [
         label: "Audit Logs",
         path: "/audit-logs",
         icon: FileSearch,
-        permissions: { anyOf: [PERMISSIONS.reports.view] },
+        permissions: { anyOf: [PERMISSIONS.auditLogs.read] },
       },
       {
         label: "Users",
@@ -195,21 +202,32 @@ const menuGroups: MenuGroup[] = [
         icon: Settings,
         matchPath: "/settings",
         permissions: {
-          anyOf: [PERMISSIONS.settings.read, PERMISSIONS.settings.update],
+          anyOf: [
+            PERMISSIONS.receiptConfig.read,
+            PERMISSIONS.receiptConfig.update,
+            PERMISSIONS.numberingConfig.read,
+            PERMISSIONS.numberingConfig.update,
+          ],
         },
         children: [
           {
             label: "Receipt",
             path: "/settings/receipt",
             permissions: {
-              anyOf: [PERMISSIONS.settings.read, PERMISSIONS.settings.update],
+              anyOf: [
+                PERMISSIONS.receiptConfig.read,
+                PERMISSIONS.receiptConfig.update,
+              ],
             },
           },
           {
             label: "Numbering",
             path: "/settings/numbering",
             permissions: {
-              anyOf: [PERMISSIONS.settings.read, PERMISSIONS.settings.update],
+              anyOf: [
+                PERMISSIONS.numberingConfig.read,
+                PERMISSIONS.numberingConfig.update,
+              ],
             },
           },
         ],
@@ -234,12 +252,17 @@ export function AppLayout() {
     .map((group) => ({
       ...group,
       items: group.items
-        .map((item) => ({
-          ...item,
-          children: item.children?.filter((child) =>
+        .map((item) => {
+          const children = item.children?.filter((child) =>
             canAccess(child.permissions, authUser),
-          ),
-        }))
+          );
+
+          return {
+            ...item,
+            path: children?.[0]?.path ?? item.path,
+            children,
+          };
+        })
         .filter((item) => {
           const hasVisibleChildren = Boolean(item.children?.length);
           return hasVisibleChildren || canAccess(item.permissions, authUser);
@@ -325,6 +348,7 @@ export function AppLayout() {
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="secondary">Outlet Utama</Badge>
+            <NotificationBell />
             <AuthMenu />
           </div>
         </header>

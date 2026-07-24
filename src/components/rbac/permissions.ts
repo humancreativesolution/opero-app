@@ -10,9 +10,20 @@ export const PERMISSIONS = {
     view: "receipt.view",
     print: "receipt.print",
   },
+  receiptConfig: {
+    read: "receipt-config.read",
+    update: "receipt-config.update",
+  },
+  numberingConfig: {
+    read: "numbering-config.read",
+    update: "numbering-config.update",
+  },
   reports: {
     view: "reports.view",
     export: "reports.export",
+  },
+  sales: {
+    read: "sales.read",
   },
   products: {
     read: "products.read",
@@ -39,16 +50,25 @@ export const PERMISSIONS = {
     delete: "suppliers.delete",
   },
   purchases: {
-    read: "purchases.read",
-    create: "purchases.create",
-    update: "purchases.update",
-    delete: "purchases.delete",
+    read: "purchase.read",
+    create: "purchase.create",
+    update: "purchase.update",
+    delete: "purchase.delete",
+    approve: "purchase.approve",
+  },
+  inventory: {
+    read: "inventory.read",
+    adjust: "inventory.adjust",
+    transfer: "inventory.transfer",
   },
   stock: {
     read: "stock.read",
     adjust: "stock.adjust",
     transfer: "stock.transfer",
-    initial: "stock.initial",
+    initial: "stock.adjust",
+  },
+  auditLogs: {
+    read: "audit-logs.read",
   },
   locations: {
     read: "locations.read",

@@ -3,6 +3,7 @@ import { Link, Outlet } from "react-router-dom";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { NotificationBell } from "@/components/notifications/notification-bell.component";
 import { Separator } from "@/components/ui/separator";
 import { AuthMenu } from "@/features/auth/components/auth-menu.component";
 import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
@@ -34,7 +35,9 @@ export function PosLayout() {
               </Link>
             </Button>
           </PermissionGate>
-          <PermissionGate anyOf={[PERMISSIONS.stock.read]}>
+          <PermissionGate
+            anyOf={[PERMISSIONS.inventory.read, PERMISSIONS.stock.read]}
+          >
             <Button asChild size="sm" variant="outline">
               <Link to="/inventory">
                 <Boxes className="size-4" />
@@ -47,12 +50,18 @@ export function PosLayout() {
             <Maximize2 className="size-4" />
           </Button>
           <PermissionGate
-            anyOf={[PERMISSIONS.settings.read, PERMISSIONS.settings.update]}
+            anyOf={[
+              PERMISSIONS.receiptConfig.read,
+              PERMISSIONS.receiptConfig.update,
+              PERMISSIONS.numberingConfig.read,
+              PERMISSIONS.numberingConfig.update,
+            ]}
           >
             <Button size="icon-sm" variant="ghost">
               <Settings className="size-4" />
             </Button>
           </PermissionGate>
+          <NotificationBell />
           <AuthMenu />
         </div>
       </header>

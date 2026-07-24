@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Edit, MapPin, Plus, Search } from "lucide-react";
+import { Edit, MapPin, MoreVertical, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { DataTable } from "@/components/data-table/data-table.component";
@@ -13,6 +13,7 @@ import { PERMISSIONS } from "@/components/rbac/permissions";
 import { canAccess } from "@/components/rbac/rbac.utils";
 import type { LocationEntity } from "@/graphql/generated";
 import { useLocations } from "@/resources/gql/location.gql";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 
 export default function LocationsPage() {
   const [page, setPage] = useState(1);
@@ -65,7 +66,7 @@ export default function LocationsPage() {
       {
         accessorKey: "type",
         header: "Type",
-        cell: ({ row }) => <Badge variant="secondary">{row.original.type}</Badge>,
+        cell: ({ row }) => <Badge className="bg-amber-100 text-amber-800" variant="secondary">{row.original.type}</Badge>,
       },
       {
         accessorKey: "createdAt",
@@ -83,14 +84,22 @@ export default function LocationsPage() {
         cell: ({ row }) => (
           <div className="text-right">
             {canUpdateLocation ? (
-              <Button
-                onClick={() => handleEdit(row.original)}
-                size="icon-sm"
-                variant="ghost"
-              >
-                <Edit className="size-4" />
-                <span className="sr-only">Edit location</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon-sm" variant="ghost">
+                    <MoreVertical className="size-4" />
+                    <span className="sr-only">Open Location actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {canUpdateLocation ? (
+                    <DropdownMenuItem onSelect={() => handleEdit(row.original)}>
+                      <Edit className="size-4" />
+                      Edit
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : null}
           </div>
         ),

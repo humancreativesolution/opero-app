@@ -1,19 +1,21 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Edit, Eye, Package, Plus, Search } from "lucide-react";
+import { Edit, MoreVertical, Package, Plus, Search } from "lucide-react";
 import { useMemo, useState } from "react";
 
 import { DataTable } from "@/components/data-table/data-table.component";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
-import { ProductDetailSheet } from "@/features/product/components/product-detail-sheet.component";
-import { ProductFormSheet } from "@/features/product/components/product-form-sheet.component";
 import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
 import { PERMISSIONS } from "@/components/rbac/permissions";
 import { canAccess } from "@/components/rbac/rbac.utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { Input } from "@/components/ui/input";
+import { ProductDetailSheet } from "@/features/product/components/product-detail-sheet.component";
+import { ProductFormSheet } from "@/features/product/components/product-form-sheet.component";
 import type { ProductEntity } from "@/graphql/generated";
 import { useProducts } from "@/resources/gql/product.gql";
+import DetailLink from "@/components/detail-link/detail-link.component";
 
 const currencyFormatter = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -86,7 +88,7 @@ export default function ProductsPage() {
         accessorKey: "name",
         header: "Product",
         cell: ({ row }) => (
-          <span className="font-medium">{row.original.name}</span>
+          <DetailLink title={row.original.name} onClick={() => handleView(row.original)} />
         ),
       },
       {
@@ -155,24 +157,22 @@ export default function ProductsPage() {
         id: "actions",
         header: () => <div className="text-right">Action</div>,
         cell: ({ row }) => (
-          <div className="flex justify-end gap-1">
-            <Button
-              onClick={() => handleView(row.original)}
-              size="icon-sm"
-              variant="ghost"
-            >
-              <Eye className="size-4" />
-              <span className="sr-only">View product detail</span>
-            </Button>
+          <div className="text-right">
             {canUpdateProduct ? (
-              <Button
-                onClick={() => handleEdit(row.original)}
-                size="icon-sm"
-                variant="ghost"
-              >
-                <Edit className="size-4" />
-                <span className="sr-only">Edit product</span>
-              </Button>
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon-sm" variant="ghost">
+                    <MoreVertical className="size-4" />
+                    <span className="sr-only">Open products actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                    <DropdownMenuItem onSelect={() => handleEdit(row.original)}>
+                      <Edit className="size-4" />
+                      Edit
+                    </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : null}
           </div>
         ),

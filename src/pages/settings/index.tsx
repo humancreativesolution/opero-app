@@ -8,6 +8,8 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { PERMISSIONS } from "@/components/rbac/permissions";
+import { canAccess } from "@/components/rbac/rbac.utils";
 import {
   Select,
   SelectContent,
@@ -205,20 +207,34 @@ function CheckboxField({
 }
 
 function SettingsNav({ view }: { view: SettingsView }) {
+  const canViewReceiptSettings = canAccess({
+    anyOf: [PERMISSIONS.receiptConfig.read, PERMISSIONS.receiptConfig.update],
+  });
+  const canViewNumberingSettings = canAccess({
+    anyOf: [
+      PERMISSIONS.numberingConfig.read,
+      PERMISSIONS.numberingConfig.update,
+    ],
+  });
+
   return (
     <div className="flex flex-wrap gap-2">
-      <Button asChild variant={view === "receipt" ? "default" : "outline"}>
-        <NavLink to="/settings/receipt">
-          <ReceiptText className="size-4" />
-          Receipt Settings
-        </NavLink>
-      </Button>
-      <Button asChild variant={view === "numbering" ? "default" : "outline"}>
-        <NavLink to="/settings/numbering">
-          <Hash className="size-4" />
-          Numbering Settings
-        </NavLink>
-      </Button>
+      {canViewReceiptSettings ? (
+        <Button asChild variant={view === "receipt" ? "default" : "outline"}>
+          <NavLink to="/settings/receipt">
+            <ReceiptText className="size-4" />
+            Receipt Settings
+          </NavLink>
+        </Button>
+      ) : null}
+      {canViewNumberingSettings ? (
+        <Button asChild variant={view === "numbering" ? "default" : "outline"}>
+          <NavLink to="/settings/numbering">
+            <Hash className="size-4" />
+            Numbering Settings
+          </NavLink>
+        </Button>
+      ) : null}
     </div>
   );
 }
@@ -232,6 +248,9 @@ function ReceiptSettingsView() {
   const configurationsQuery = useReceiptConfigurations();
   const resolvedConfigQuery = useReceiptConfiguration(locationId || undefined);
   const updateConfig = useUpdateReceiptConfiguration();
+  const canUpdateReceiptConfig = canAccess({
+    anyOf: [PERMISSIONS.receiptConfig.update],
+  });
 
   const receiptScopeKey = locationId || "default";
   const resolvedForm = useMemo(
@@ -452,10 +471,12 @@ function ReceiptSettingsView() {
               <RotateCcw className="size-4" />
               Reset
             </Button>
-            <Button disabled={updateConfig.isPending} onClick={handleSubmit}>
-              <Save className="size-4" />
-              Save receipt config
-            </Button>
+            {canUpdateReceiptConfig ? (
+              <Button disabled={updateConfig.isPending} onClick={handleSubmit}>
+                <Save className="size-4" />
+                Save receipt config
+              </Button>
+            ) : null}
           </div>
         </CardContent>
       </Card>
@@ -534,6 +555,9 @@ function NumberingSettingsView() {
   const [formDrafts, setFormDrafts] = useState<Record<string, NumberingFormState>>({});
   const configurationsQuery = useNumberingConfigurations();
   const updateConfig = useUpdateNumberingConfiguration();
+  const canUpdateNumberingConfig = canAccess({
+    anyOf: [PERMISSIONS.numberingConfig.update],
+  });
 
   const selectedConfig = useMemo(
     () =>
@@ -778,10 +802,12 @@ function NumberingSettingsView() {
               <RotateCcw className="size-4" />
               Reset
             </Button>
-            <Button disabled={updateConfig.isPending} onClick={handleSubmit}>
-              <Save className="size-4" />
-              Save numbering config
-            </Button>
+            {canUpdateNumberingConfig ? (
+              <Button disabled={updateConfig.isPending} onClick={handleSubmit}>
+                <Save className="size-4" />
+                Save numbering config
+              </Button>
+            ) : null}
           </div>
         </CardContent>
       </Card>

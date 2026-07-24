@@ -1,5 +1,5 @@
 import type { ColumnDef } from "@tanstack/react-table";
-import { Edit, Plus, Ruler, Search, Trash2 } from "lucide-react";
+import { Edit, MoreVertical, Plus, Ruler, Search, Trash2 } from "lucide-react";
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 
@@ -23,6 +23,8 @@ import { UnitFormSheet } from "@/features/unit/components/unit-form-sheet.compon
 import type { UnitEntity } from "@/graphql/generated";
 import { ErrorHelper } from "@/libs/error";
 import { useRemoveUnit, useUnits } from "@/resources/gql/unit.gql";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { cn } from "@/libs/utils";
 
 const dateFormatter = new Intl.DateTimeFormat("id-ID", {
   dateStyle: "medium",
@@ -109,7 +111,7 @@ export default function UnitsPage() {
         accessorKey: "isActive",
         header: "Status",
         cell: ({ row }) => (
-          <Badge variant={row.original.isActive ? "secondary" : "outline"}>
+          <Badge variant={row.original.isActive ? "secondary" : "outline"} className={cn(row.original.isActive ? "bg-teal-50 text-teal-600" : "bg-stone-200 text-stone-800")}>
             {row.original.isActive ? "Active" : "Inactive"}
           </Badge>
         ),
@@ -123,26 +125,33 @@ export default function UnitsPage() {
         id: "actions",
         header: () => <div className="text-right">Action</div>,
         cell: ({ row }) => (
-          <div className="flex justify-end gap-1">
-            {canUpdateUnit ? (
-              <Button
-                onClick={() => handleEdit(row.original)}
-                size="icon-sm"
-                variant="ghost"
-              >
-                <Edit className="size-4" />
-                <span className="sr-only">Edit unit</span>
-              </Button>
-            ) : null}
-            {canDeleteUnit ? (
-              <Button
-                onClick={() => setDeleteUnit(row.original)}
-                size="icon-sm"
-                variant="ghost"
-              >
-                <Trash2 className="size-4 text-destructive" />
-                <span className="sr-only">Delete unit</span>
-              </Button>
+          <div className="text-right">
+            {canUpdateUnit || canDeleteUnit ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon-sm" variant="ghost">
+                    <MoreVertical className="size-4" />
+                    <span className="sr-only">Open customer actions</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  {canUpdateUnit ? (
+                    <DropdownMenuItem onSelect={() => handleEdit(row.original)}>
+                      <Edit className="size-4" />
+                      Edit
+                    </DropdownMenuItem>
+                  ) : null}
+                  {canDeleteUnit ? (
+                    <DropdownMenuItem
+                      onSelect={() => setDeleteUnit(row.original)}
+                      variant="destructive"
+                    >
+                      <Trash2 className="size-4" />
+                      Delete
+                    </DropdownMenuItem>
+                  ) : null}
+                </DropdownMenuContent>
+              </DropdownMenu>
             ) : null}
           </div>
         ),

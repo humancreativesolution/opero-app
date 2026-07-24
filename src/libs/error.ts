@@ -1,4 +1,5 @@
 export class TokenError extends Error {}
+export class ForbiddenError extends Error {}
 
 type GraphQLErrorLike = {
   message?: string;
@@ -47,6 +48,23 @@ export class ErrorHelper {
 
       if (hasInvalidToken) {
         return new TokenError(msg);
+      }
+
+      const hasForbidden = networkError.some((row) => {
+        const code = row?.code ?? row?.extensions?.code;
+        const message = [row?.message, row?.extensions?.originalError?.message]
+          .flat()
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
+
+        return code === "FORBIDDEN" || message.includes("forbidden");
+      });
+
+      if (hasForbidden) {
+        return new ForbiddenError(
+          msg || "You don't have access to perform this action.",
+        );
       }
 
       return new Error(msg);

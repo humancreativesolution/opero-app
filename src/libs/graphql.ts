@@ -18,6 +18,8 @@ type GraphQLErrorLike = {
   };
 };
 
+export const GRAPHQL_FORBIDDEN_EVENT = "opero:graphql-forbidden";
+
 const graphqlClient = new GraphQLClient(
   `${import.meta.env.VITE_API_URL}graphql`,
   {
@@ -30,6 +32,14 @@ const graphqlClient = new GraphQLClient(
     },
   },
 );
+
+function emitForbiddenEvent() {
+  if (typeof window === "undefined") {
+    return;
+  }
+
+  window.dispatchEvent(new Event(GRAPHQL_FORBIDDEN_EVENT));
+}
 
 function isUnauthorizedGraphQLError(row: GraphQLErrorLike) {
   const code = row.extensions?.code?.toUpperCase();
@@ -53,6 +63,26 @@ function isUnauthorizedGraphQLError(row: GraphQLErrorLike) {
   );
 }
 
+function isForbiddenGraphQLError(row: GraphQLErrorLike) {
+  const code = row.extensions?.code?.toUpperCase();
+  const statusCode = row.extensions?.originalError?.statusCode;
+  const message = [
+    row.message,
+    row.extensions?.originalError?.message,
+    row.extensions?.originalError?.error,
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return (
+    statusCode === 403 ||
+    code === "FORBIDDEN" ||
+    message.includes("forbidden") ||
+    message.includes("permission")
+  );
+}
+
 function isUnauthorizedError(error: unknown) {
   if (error instanceof ClientError) {
     if (error.response.status === 401) {
@@ -67,6 +97,25 @@ function isUnauthorizedError(error: unknown) {
       .response;
 
     return response?.errors?.some(isUnauthorizedGraphQLError) ?? false;
+  }
+
+  return false;
+}
+
+function isForbiddenError(error: unknown) {
+  if (error instanceof ClientError) {
+    if (error.response.status === 403) {
+      return true;
+    }
+
+    return error.response.errors?.some(isForbiddenGraphQLError);
+  }
+
+  if (typeof error === "object" && error !== null) {
+    const response = (error as { response?: { errors?: GraphQLErrorLike[] } })
+      .response;
+
+    return response?.errors?.some(isForbiddenGraphQLError) ?? false;
   }
 
   return false;
@@ -91,6 +140,8 @@ export const gqlClient = {
     } catch (error) {
       if (isUnauthorizedError(error)) {
         expireAuthSession();
+      } else if (isForbiddenError(error)) {
+        emitForbiddenEvent();
       }
 
       throw error;

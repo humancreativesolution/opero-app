@@ -125,6 +125,9 @@ export default function PurchasesPage() {
     receivePurchase.isPending ||
     cancelPurchase.isPending;
   const canUpdatePurchase = canAccess({ anyOf: [PERMISSIONS.purchases.update] });
+  const canApprovePurchase = canAccess({
+    anyOf: [PERMISSIONS.purchases.approve],
+  });
   const filteredPurchases = useMemo(() => {
     const purchases = purchasesQuery.data ?? [];
     const keyword = search.trim().toLowerCase();
@@ -291,8 +294,8 @@ export default function PurchasesPage() {
           const canCancel =
             purchase.status === "DRAFT" || purchase.status === "CONFIRMED";
           const hasActions =
-            canUpdatePurchase &&
-            (canEdit || canConfirm || canReceive || canCancel);
+            (canUpdatePurchase && (canEdit || canCancel)) ||
+            (canApprovePurchase && (canConfirm || canReceive));
 
           return (
             <div className="text-right">
@@ -310,7 +313,7 @@ export default function PurchasesPage() {
                       Edit draft
                     </DropdownMenuItem>
                   ) : null}
-                  {canUpdatePurchase && canConfirm ? (
+                  {canApprovePurchase && canConfirm ? (
                     <DropdownMenuItem
                       className="text-teal-600 focus:bg-teal-50 focus:text-teal-700 dark:text-teal-400 dark:focus:bg-teal-950/40 dark:focus:text-teal-300"
                       onSelect={() =>
@@ -326,7 +329,7 @@ export default function PurchasesPage() {
                       Confirm
                     </DropdownMenuItem>
                   ) : null}
-                  {canUpdatePurchase && canReceive ? (
+                  {canApprovePurchase && canReceive ? (
                     <DropdownMenuItem
                       onSelect={() =>
                         openStatusAction(
@@ -367,7 +370,7 @@ export default function PurchasesPage() {
         },
       },
     ],
-    [canUpdatePurchase],
+    [canApprovePurchase, canUpdatePurchase],
   );
 
   return (
