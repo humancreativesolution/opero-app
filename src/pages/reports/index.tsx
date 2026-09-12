@@ -1,6 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table";
 import {
   BarChart3,
+  Clock,
   CreditCard,
   Download,
   Package2,
@@ -19,6 +20,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { PermissionGate } from "@/components/rbac/components/permission-gate.component";
 import { PERMISSIONS } from "@/components/rbac/permissions";
+import { ReportExportJobsDialog } from "@/features/report-export/components/report-export-jobs-dialog.component";
 import { useCustomersByTenant } from "@/resources/gql/customer.gql";
 import type { SaleType, SalesReportPaymentMethod } from "@/graphql/generated";
 import { useLocations } from "@/resources/gql/location.gql";
@@ -103,6 +105,7 @@ export default function ReportsPage() {
   const [transactionLimit, setTransactionLimit] = useState(10);
   const [itemPage, setItemPage] = useState(1);
   const [itemLimit, setItemLimit] = useState(10);
+  const [exportJobsDialogOpen, setExportJobsDialogOpen] = useState(false);
 
   const locationsQuery = useLocations({ limit: 100 });
   const customersQuery = useCustomersByTenant({ isActive: true });
@@ -386,6 +389,12 @@ export default function ReportsPage() {
               Export CSV
             </Button>
           </PermissionGate>
+          <PermissionGate anyOf={[PERMISSIONS.reports.export]}>
+            <Button onClick={() => setExportJobsDialogOpen(true)} variant="outline">
+              <Clock className="size-4" />
+              Async Export
+            </Button>
+          </PermissionGate>
           <Button
             onClick={() => setView("transactions")}
             variant={view === "transactions" ? "default" : "outline"}
@@ -624,6 +633,12 @@ export default function ReportsPage() {
           )}
         </CardContent>
       </Card>
+
+      <ReportExportJobsDialog
+        filter={filter}
+        onOpenChange={setExportJobsDialogOpen}
+        open={exportJobsDialogOpen}
+      />
     </div>
   );
 }

@@ -78,6 +78,11 @@ export const PERMISSIONS = {
     read: "settings.read",
     update: "settings.update",
   },
+  approvals: {
+    create: "approvals.create",
+    read: "approvals.read",
+    approve: "approvals.approve",
+  },
 } as const;
 
 export type PermissionRequirement = {

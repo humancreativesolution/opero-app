@@ -1,6 +1,8 @@
 import {
   BarChart3,
+  Bell,
   Boxes,
+  CircleCheckBig,
   ClipboardCheck,
   FileSearch,
   Home,
@@ -22,6 +24,7 @@ import { NavLink, Outlet, useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { AuthMenu } from "@/features/auth/components/auth-menu.component";
+import { NotificationBell } from "@/features/notification/components/notification-bell.component";
 import {
   PERMISSIONS,
   type PermissionRequirement,
@@ -157,6 +160,11 @@ const menuGroups: MenuGroup[] = [
     label: "Management",
     items: [
       {
+        label: "Notifications",
+        path: "/notifications",
+        icon: Bell,
+      },
+      {
         label: "Reports",
         path: "/reports",
         icon: BarChart3,
@@ -167,6 +175,18 @@ const menuGroups: MenuGroup[] = [
         path: "/audit-logs",
         icon: FileSearch,
         permissions: { anyOf: [PERMISSIONS.reports.view] },
+      },
+      {
+        label: "Approvals",
+        path: "/approvals",
+        icon: CircleCheckBig,
+        permissions: {
+          anyOf: [
+            PERMISSIONS.approvals.create,
+            PERMISSIONS.approvals.read,
+            PERMISSIONS.approvals.approve,
+          ],
+        },
       },
       {
         label: "Users",
@@ -325,6 +345,7 @@ export function AppLayout() {
           </div>
           <div className="flex items-center gap-2">
             <Badge variant="secondary">Outlet Utama</Badge>
+            <NotificationBell />
             <AuthMenu />
           </div>
         </header>

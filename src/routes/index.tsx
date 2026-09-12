@@ -1,5 +1,6 @@
 import { Navigate, type RouteObject } from "react-router-dom";
 
+import ApprovalsPage from "@pages/approvals";
 import AuditLogsPage from "@pages/audit-logs";
 import CashierShiftsPage from "@pages/cashier-shifts";
 import CustomersPage from "@pages/customers";
@@ -8,6 +9,7 @@ import InventoryPage from "@pages/inventory";
 import LocationsPage from "@pages/locations";
 import LoginPage from "@pages/login";
 import NotFound from "@pages/not-found";
+import NotificationsPage from "@pages/notifications";
 import PosPage from "@pages/pos";
 import ProductsPage from "@pages/products";
 import PromotionsPage from "@pages/promotions";
@@ -69,6 +71,13 @@ const ReportsRoute = withPermission(ReportsPage, {
 const AuditLogsRoute = withPermission(AuditLogsPage, {
   anyOf: [PERMISSIONS.reports.view],
 });
+const ApprovalsRoute = withPermission(ApprovalsPage, {
+  anyOf: [
+    PERMISSIONS.approvals.create,
+    PERMISSIONS.approvals.read,
+    PERMISSIONS.approvals.approve,
+  ],
+});
 const StaffRoute = withPermission(() => <UsersPage view="staff" />, {
   anyOf: [PERMISSIONS.users.read],
 });
@@ -115,6 +124,8 @@ const routes = [
       { path: "stock-opnames", element: <StockOpnamesRoute /> },
       { path: "reports", element: <ReportsRoute /> },
       { path: "audit-logs", element: <AuditLogsRoute /> },
+      { path: "approvals", element: <ApprovalsRoute /> },
+      { path: "notifications", element: <NotificationsPage /> },
       {
         path: "users",
         children: [

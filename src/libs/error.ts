@@ -11,6 +11,15 @@ type GraphQLErrorLike = {
   };
 };
 
+const ERROR_MESSAGES: Record<string, string> = {
+  UNAUTHORIZED: "Sesi Anda telah berakhir. Silakan login kembali.",
+  FORBIDDEN: "Anda tidak memiliki akses untuk melakukan aksi ini.",
+  NOT_FOUND: "Data tidak ditemukan.",
+  CONFLICT: "Data sudah ada atau bentrok dengan data lain.",
+  INTERNAL_SERVER_ERROR: "Terjadi kesalahan server. Silakan coba lagi.",
+  invalid_token: "Sesi Anda telah berakhir. Silakan login kembali.",
+};
+
 export class ErrorHelper {
   static parse(error: unknown): Error {
     if (!(error instanceof Error) && typeof error !== "object") {
@@ -27,23 +36,29 @@ export class ErrorHelper {
       graphQlError.graphQLErrors ?? graphQlError.response?.errors;
 
     if (networkError && Array.isArray(networkError)) {
-      const msg = networkError
-        .map((row) => {
-          const originalMessage = row.extensions?.originalError?.message;
+      const firstError = networkError[0];
+      const code =
+        firstError?.extensions?.code || firstError?.code || "";
 
-          if (Array.isArray(originalMessage)) {
-            return originalMessage.join(", ");
-          }
-
-          return originalMessage ?? row.message;
-        })
-        .filter(Boolean)
-        .join(", ");
       const hasInvalidToken = networkError.some(
         (row) =>
           row?.code === "invalid_token" ||
-          row?.extensions?.code === "invalid_token",
+          row?.extensions?.code === "invalid_token" ||
+          row?.extensions?.code === "UNAUTHORIZED",
       );
+
+      const originalMessage = firstError?.extensions?.originalError?.message;
+      let msg = "";
+
+      if (Array.isArray(originalMessage)) {
+        msg = originalMessage.join(", ");
+      } else if (typeof originalMessage === "string") {
+        msg = originalMessage;
+      } else if (code && ERROR_MESSAGES[code]) {
+        msg = ERROR_MESSAGES[code];
+      } else {
+        msg = firstError?.message ?? "Terjadi kesalahan";
+      }
 
       if (hasInvalidToken) {
         return new TokenError(msg);
@@ -52,6 +67,6 @@ export class ErrorHelper {
       return new Error(msg);
     }
 
-    return error instanceof Error ? error : new Error("Unexpected error");
+    return error instanceof Error ? error : new Error("Terjadi kesalahan");
   }
 }

@@ -19,6 +19,56 @@ export const AdjustmentType = {
 } as const;
 
 export type AdjustmentType = typeof AdjustmentType[keyof typeof AdjustmentType];
+export type ApprovalDecisionInput = {
+  id: Scalars['ID']['input'];
+  notes?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApprovalRequestEntity = {
+  __typename?: 'ApprovalRequestEntity';
+  createdAt: Scalars['DateTime']['output'];
+  decidedAt?: Maybe<Scalars['DateTime']['output']>;
+  decidedByUserId?: Maybe<Scalars['ID']['output']>;
+  decidedByUserName?: Maybe<Scalars['String']['output']>;
+  decisionNotes?: Maybe<Scalars['String']['output']>;
+  failureReason?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  notes?: Maybe<Scalars['String']['output']>;
+  payloadJson: Scalars['String']['output'];
+  reason?: Maybe<Scalars['String']['output']>;
+  requestedAt: Scalars['DateTime']['output'];
+  requestedByUserId: Scalars['ID']['output'];
+  requestedByUserName: Scalars['String']['output'];
+  resourceId?: Maybe<Scalars['ID']['output']>;
+  resourceType?: Maybe<Scalars['String']['output']>;
+  status: ApprovalRequestStatus;
+  tenantId: Scalars['ID']['output'];
+  type: ApprovalRequestType;
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApprovalRequestFilterInput = {
+  requestedByUserId?: InputMaybe<Scalars['ID']['input']>;
+  status?: InputMaybe<ApprovalRequestStatus>;
+  type?: InputMaybe<ApprovalRequestType>;
+};
+
+export const ApprovalRequestStatus = {
+  Approved: 'APPROVED',
+  Failed: 'FAILED',
+  Pending: 'PENDING',
+  Processing: 'PROCESSING',
+  Rejected: 'REJECTED'
+} as const;
+
+export type ApprovalRequestStatus = typeof ApprovalRequestStatus[keyof typeof ApprovalRequestStatus];
+export const ApprovalRequestType = {
+  CashOut: 'CASH_OUT',
+  SaleReturn: 'SALE_RETURN',
+  StockAdjustment: 'STOCK_ADJUSTMENT'
+} as const;
+
+export type ApprovalRequestType = typeof ApprovalRequestType[keyof typeof ApprovalRequestType];
 export type AuditLogEntity = {
   __typename?: 'AuditLogEntity';
   action: Scalars['String']['output'];
@@ -51,6 +101,47 @@ export type AuthResponse = {
   user: UserResponse;
 };
 
+export type CashMovementEntity = {
+  __typename?: 'CashMovementEntity';
+  amount: Scalars['Float']['output'];
+  cashierShiftId: Scalars['ID']['output'];
+  createdAt: Scalars['DateTime']['output'];
+  createdByUserId: Scalars['ID']['output'];
+  createdByUserName: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  locationId: Scalars['ID']['output'];
+  locationName: Scalars['String']['output'];
+  notes?: Maybe<Scalars['String']['output']>;
+  reason: CashMovementReason;
+  tenantId: Scalars['ID']['output'];
+  type: CashMovementType;
+};
+
+export type CashMovementFilterInput = {
+  cashierShiftId?: InputMaybe<Scalars['ID']['input']>;
+  dateFrom?: InputMaybe<Scalars['String']['input']>;
+  dateTo?: InputMaybe<Scalars['String']['input']>;
+  locationId?: InputMaybe<Scalars['ID']['input']>;
+  reason?: InputMaybe<CashMovementReason>;
+  type?: InputMaybe<CashMovementType>;
+};
+
+export const CashMovementReason = {
+  AdditionalFloat: 'ADDITIONAL_FLOAT',
+  CashCorrection: 'CASH_CORRECTION',
+  CashDeposit: 'CASH_DEPOSIT',
+  CashWithdrawal: 'CASH_WITHDRAWAL',
+  Other: 'OTHER',
+  PettyCashExpense: 'PETTY_CASH_EXPENSE'
+} as const;
+
+export type CashMovementReason = typeof CashMovementReason[keyof typeof CashMovementReason];
+export const CashMovementType = {
+  CashIn: 'CASH_IN',
+  CashOut: 'CASH_OUT'
+} as const;
+
+export type CashMovementType = typeof CashMovementType[keyof typeof CashMovementType];
 export type CashSummary = {
   __typename?: 'CashSummary';
   byMethod: Array<PaymentMethodSummary>;
@@ -84,6 +175,8 @@ export type CashierShiftFilterInput = {
 
 export type CashierShiftReportEntity = {
   __typename?: 'CashierShiftReportEntity';
+  cashInTotal: Scalars['Float']['output'];
+  cashOutTotal: Scalars['Float']['output'];
   cashPaymentTotal: Scalars['Float']['output'];
   closedAt?: Maybe<Scalars['DateTime']['output']>;
   closedByUserId?: Maybe<Scalars['ID']['output']>;
@@ -158,6 +251,14 @@ export type CloseCashierShiftInput = {
   countedCash: Scalars['Float']['input'];
   id: Scalars['ID']['input'];
   notes?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type CreateCashMovementInput = {
+  amount: Scalars['Float']['input'];
+  cashierShiftId: Scalars['ID']['input'];
+  notes?: InputMaybe<Scalars['String']['input']>;
+  reason: CashMovementReason;
+  type: CashMovementType;
 };
 
 export type CreateCustomerInput = {
@@ -426,10 +527,11 @@ export type MinimumStockSettingEntity = {
 
 export type Mutation = {
   __typename?: 'Mutation';
-  adjustStock: InventoryTransactionEntity;
+  approveApprovalRequest: ApprovalRequestEntity;
   cancelPurchase: PurchaseEntity;
   cancelStockOpname: StockOpnameEntity;
   closeCashierShift: CashierShiftEntity;
+  createCashMovement: CashMovementEntity;
   createCustomer: CustomerEntity;
   createLocation: LocationEntity;
   createProduct: ProductEntity;
@@ -438,7 +540,8 @@ export type Mutation = {
   createPurchaseFromSuggestions: PurchaseEntity;
   createRole: RoleEntity;
   createSale: SaleEntity;
-  createSaleReturn: SaleEntity;
+  createSalesReportItemsExport: ReportExportJobEntity;
+  createSalesReportTransactionsExport: ReportExportJobEntity;
   createStockOpname: StockOpnameEntity;
   createSupplier: SupplierEntity;
   createTenant: TenantEntity;
@@ -448,9 +551,12 @@ export type Mutation = {
   deletePurchase: PurchaseEntity;
   finalizeStockOpname: StockOpnameEntity;
   login: AuthResponse;
+  markAllNotificationsAsRead: Scalars['Int']['output'];
+  markNotificationAsRead: NotificationEntity;
   openCashierShift: CashierShiftEntity;
   receivePurchase: PurchaseEntity;
   register: AuthResponse;
+  rejectApprovalRequest: ApprovalRequestEntity;
   removeCustomer: CustomerEntity;
   removeLocation: LocationEntity;
   removeProduct: ProductEntity;
@@ -460,6 +566,9 @@ export type Mutation = {
   removeTenant: TenantEntity;
   removeUnit: UnitEntity;
   removeUser: UserEntity;
+  requestCashOut: ApprovalRequestEntity;
+  requestSaleReturn: ApprovalRequestEntity;
+  requestStockAdjustment: ApprovalRequestEntity;
   setInitialStock: Array<InventoryTransactionEntity>;
   setMinimumStock: MinimumStockSettingEntity;
   transferStock: Array<InventoryTransactionEntity>;
@@ -480,8 +589,8 @@ export type Mutation = {
 };
 
 
-export type MutationAdjustStockArgs = {
-  input: StockAdjustmentInput;
+export type MutationApproveApprovalRequestArgs = {
+  input: ApprovalDecisionInput;
 };
 
 
@@ -497,6 +606,11 @@ export type MutationCancelStockOpnameArgs = {
 
 export type MutationCloseCashierShiftArgs = {
   input: CloseCashierShiftInput;
+};
+
+
+export type MutationCreateCashMovementArgs = {
+  input: CreateCashMovementInput;
 };
 
 
@@ -540,8 +654,13 @@ export type MutationCreateSaleArgs = {
 };
 
 
-export type MutationCreateSaleReturnArgs = {
-  createSaleReturnInput: CreateSaleReturnInput;
+export type MutationCreateSalesReportItemsExportArgs = {
+  filter?: InputMaybe<SalesReportFilterInput>;
+};
+
+
+export type MutationCreateSalesReportTransactionsExportArgs = {
+  filter?: InputMaybe<SalesReportFilterInput>;
 };
 
 
@@ -590,6 +709,11 @@ export type MutationLoginArgs = {
 };
 
 
+export type MutationMarkNotificationAsReadArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
 export type MutationOpenCashierShiftArgs = {
   input: OpenCashierShiftInput;
 };
@@ -602,6 +726,11 @@ export type MutationReceivePurchaseArgs = {
 
 export type MutationRegisterArgs = {
   registerInput: RegisterInput;
+};
+
+
+export type MutationRejectApprovalRequestArgs = {
+  input: ApprovalDecisionInput;
 };
 
 
@@ -647,6 +776,21 @@ export type MutationRemoveUnitArgs = {
 
 export type MutationRemoveUserArgs = {
   id: Scalars['String']['input'];
+};
+
+
+export type MutationRequestCashOutArgs = {
+  input: CreateCashMovementInput;
+};
+
+
+export type MutationRequestSaleReturnArgs = {
+  input: CreateSaleReturnInput;
+};
+
+
+export type MutationRequestStockAdjustmentArgs = {
+  input: StockAdjustmentInput;
 };
 
 
@@ -734,6 +878,51 @@ export type MutationUpdateUserArgs = {
   updateUserInput: UpdateUserInput;
 };
 
+export type NotificationEntity = {
+  __typename?: 'NotificationEntity';
+  actionUrl?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  dedupeKey?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isRead: Scalars['Boolean']['output'];
+  message: Scalars['String']['output'];
+  metadataJson?: Maybe<Scalars['String']['output']>;
+  readAt?: Maybe<Scalars['DateTime']['output']>;
+  recipientUserId?: Maybe<Scalars['ID']['output']>;
+  resourceId?: Maybe<Scalars['ID']['output']>;
+  resourceType?: Maybe<Scalars['String']['output']>;
+  severity: NotificationSeverity;
+  tenantId: Scalars['ID']['output'];
+  title: Scalars['String']['output'];
+  type: NotificationType;
+};
+
+export type NotificationFilterInput = {
+  dateFrom?: InputMaybe<Scalars['String']['input']>;
+  dateTo?: InputMaybe<Scalars['String']['input']>;
+  isRead?: InputMaybe<Scalars['Boolean']['input']>;
+  severity?: InputMaybe<NotificationSeverity>;
+  type?: InputMaybe<NotificationType>;
+};
+
+export const NotificationSeverity = {
+  Error: 'ERROR',
+  Info: 'INFO',
+  Warning: 'WARNING'
+} as const;
+
+export type NotificationSeverity = typeof NotificationSeverity[keyof typeof NotificationSeverity];
+export const NotificationType = {
+  ApprovalDecided: 'APPROVAL_DECIDED',
+  ApprovalRequested: 'APPROVAL_REQUESTED',
+  CashierShiftVariance: 'CASHIER_SHIFT_VARIANCE',
+  CashMovementCreated: 'CASH_MOVEMENT_CREATED',
+  LowStock: 'LOW_STOCK',
+  ReportExportCompleted: 'REPORT_EXPORT_COMPLETED',
+  ReportExportFailed: 'REPORT_EXPORT_FAILED'
+} as const;
+
+export type NotificationType = typeof NotificationType[keyof typeof NotificationType];
 export type NumberingConfigurationEntity = {
   __typename?: 'NumberingConfigurationEntity';
   createdAt: Scalars['DateTime']['output'];
@@ -770,9 +959,21 @@ export type OpenCashierShiftInput = {
   openingCash: Scalars['Float']['input'];
 };
 
+export type PaginatedApprovalRequests = {
+  __typename?: 'PaginatedApprovalRequests';
+  data: Array<ApprovalRequestEntity>;
+  meta: PaginationMeta;
+};
+
 export type PaginatedAuditLogs = {
   __typename?: 'PaginatedAuditLogs';
   data: Array<AuditLogEntity>;
+  meta: PaginationMeta;
+};
+
+export type PaginatedCashMovements = {
+  __typename?: 'PaginatedCashMovements';
+  data: Array<CashMovementEntity>;
   meta: PaginationMeta;
 };
 
@@ -800,6 +1001,12 @@ export type PaginatedLocations = {
   meta: PaginationMeta;
 };
 
+export type PaginatedNotifications = {
+  __typename?: 'PaginatedNotifications';
+  data: Array<NotificationEntity>;
+  meta: PaginationMeta;
+};
+
 export type PaginatedPosProducts = {
   __typename?: 'PaginatedPosProducts';
   data: Array<PosProduct>;
@@ -815,6 +1022,12 @@ export type PaginatedProducts = {
 export type PaginatedPromotions = {
   __typename?: 'PaginatedPromotions';
   data: Array<PromotionEntity>;
+  meta: PaginationMeta;
+};
+
+export type PaginatedReportExportJobs = {
+  __typename?: 'PaginatedReportExportJobs';
+  data: Array<ReportExportJobSummaryEntity>;
   meta: PaginationMeta;
 };
 
@@ -1118,7 +1331,10 @@ export type PurchaseSummary = {
 
 export type Query = {
   __typename?: 'Query';
+  approvalRequest?: Maybe<ApprovalRequestEntity>;
+  approvalRequests: PaginatedApprovalRequests;
   auditLogs: PaginatedAuditLogs;
+  cashMovements: PaginatedCashMovements;
   cashierShift: CashierShiftEntity;
   cashierShiftReport: CashierShiftReportEntity;
   cashierShiftTransactions: PaginatedCashierShiftTransactions;
@@ -1136,6 +1352,8 @@ export type Query = {
   locationsByTenant: Array<LocationEntity>;
   me: UserResponse;
   minimumStockSettings: Array<MinimumStockSettingEntity>;
+  myApprovalRequests: PaginatedApprovalRequests;
+  notifications: PaginatedNotifications;
   numberingConfiguration: NumberingConfigurationEntity;
   numberingConfigurations: Array<NumberingConfigurationEntity>;
   permissions: Array<PermissionEntity>;
@@ -1153,6 +1371,8 @@ export type Query = {
   purchases: Array<PurchaseEntity>;
   receiptConfiguration: ReceiptConfigurationEntity;
   receiptConfigurations: Array<ReceiptConfigurationEntity>;
+  reportExportJob: ReportExportJobEntity;
+  reportExportJobs: PaginatedReportExportJobs;
   role?: Maybe<RoleEntity>;
   roles: PaginatedRoles;
   rolesByTenant: Array<RoleEntity>;
@@ -1174,14 +1394,34 @@ export type Query = {
   unit?: Maybe<UnitEntity>;
   units: PaginatedUnits;
   unitsByTenant: Array<UnitEntity>;
+  unreadNotificationCount: Scalars['Int']['output'];
   user?: Maybe<UserEntity>;
   users: PaginatedUsers;
   usersByTenant: Array<UserEntity>;
 };
 
 
+export type QueryApprovalRequestArgs = {
+  id: Scalars['String']['input'];
+};
+
+
+export type QueryApprovalRequestsArgs = {
+  filter?: InputMaybe<ApprovalRequestFilterInput>;
+  limit?: Scalars['Int']['input'];
+  page?: Scalars['Int']['input'];
+};
+
+
 export type QueryAuditLogsArgs = {
   filter?: InputMaybe<AuditLogFilterInput>;
+  limit?: Scalars['Int']['input'];
+  page?: Scalars['Int']['input'];
+};
+
+
+export type QueryCashMovementsArgs = {
+  filter?: InputMaybe<CashMovementFilterInput>;
   limit?: Scalars['Int']['input'];
   page?: Scalars['Int']['input'];
 };
@@ -1270,6 +1510,20 @@ export type QueryMinimumStockSettingsArgs = {
 };
 
 
+export type QueryMyApprovalRequestsArgs = {
+  filter?: InputMaybe<ApprovalRequestFilterInput>;
+  limit?: Scalars['Int']['input'];
+  page?: Scalars['Int']['input'];
+};
+
+
+export type QueryNotificationsArgs = {
+  filter?: InputMaybe<NotificationFilterInput>;
+  limit?: Scalars['Int']['input'];
+  page?: Scalars['Int']['input'];
+};
+
+
 export type QueryNumberingConfigurationArgs = {
   documentType: NumberingDocumentType;
 };
@@ -1336,6 +1590,18 @@ export type QueryPurchasesArgs = {
 
 export type QueryReceiptConfigurationArgs = {
   locationId?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type QueryReportExportJobArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type QueryReportExportJobsArgs = {
+  filter?: InputMaybe<ReportExportJobFilterInput>;
+  limit?: Scalars['Int']['input'];
+  page?: Scalars['Int']['input'];
 };
 
 
@@ -1492,6 +1758,66 @@ export type RegisterInput = {
   subdomain: Scalars['String']['input'];
 };
 
+export type ReportExportJobEntity = {
+  __typename?: 'ReportExportJobEntity';
+  completedAt?: Maybe<Scalars['DateTime']['output']>;
+  content?: Maybe<Scalars['String']['output']>;
+  contentType?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  errorMessage?: Maybe<Scalars['String']['output']>;
+  expiresAt?: Maybe<Scalars['DateTime']['output']>;
+  failedAt?: Maybe<Scalars['DateTime']['output']>;
+  fileName?: Maybe<Scalars['String']['output']>;
+  filterJson?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isDownloadable: Scalars['Boolean']['output'];
+  requestedByUserId?: Maybe<Scalars['ID']['output']>;
+  requestedByUserName?: Maybe<Scalars['String']['output']>;
+  startedAt?: Maybe<Scalars['DateTime']['output']>;
+  status: ReportExportStatus;
+  tenantId: Scalars['ID']['output'];
+  type: ReportExportType;
+};
+
+export type ReportExportJobFilterInput = {
+  status?: InputMaybe<ReportExportStatus>;
+  type?: InputMaybe<ReportExportType>;
+};
+
+export type ReportExportJobSummaryEntity = {
+  __typename?: 'ReportExportJobSummaryEntity';
+  completedAt?: Maybe<Scalars['DateTime']['output']>;
+  contentType?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  errorMessage?: Maybe<Scalars['String']['output']>;
+  expiresAt?: Maybe<Scalars['DateTime']['output']>;
+  failedAt?: Maybe<Scalars['DateTime']['output']>;
+  fileName?: Maybe<Scalars['String']['output']>;
+  filterJson?: Maybe<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  isDownloadable: Scalars['Boolean']['output'];
+  requestedByUserId?: Maybe<Scalars['ID']['output']>;
+  requestedByUserName?: Maybe<Scalars['String']['output']>;
+  startedAt?: Maybe<Scalars['DateTime']['output']>;
+  status: ReportExportStatus;
+  tenantId: Scalars['ID']['output'];
+  type: ReportExportType;
+};
+
+export const ReportExportStatus = {
+  Completed: 'COMPLETED',
+  Failed: 'FAILED',
+  Pending: 'PENDING',
+  Processing: 'PROCESSING'
+} as const;
+
+export type ReportExportStatus = typeof ReportExportStatus[keyof typeof ReportExportStatus];
+export const ReportExportType = {
+  SalesReportItems: 'SALES_REPORT_ITEMS',
+  SalesReportTransactions: 'SALES_REPORT_TRANSACTIONS'
+} as const;
+
+export type ReportExportType = typeof ReportExportType[keyof typeof ReportExportType];
 export type RoleEntity = {
   __typename?: 'RoleEntity';
   createdAt: Scalars['DateTime']['output'];

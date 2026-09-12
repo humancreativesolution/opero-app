@@ -8,6 +8,7 @@ import {
   Search,
   ShoppingCart,
   Trash2,
+  Wallet,
 } from "lucide-react";
 import { useDeferredValue, useMemo, useState } from "react";
 import { toast } from "sonner";
@@ -23,6 +24,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { CashMovementFormSheet } from "@/features/cashier-shift/components/cash-movement-form-sheet.component";
 import { CloseCashierShiftSheet } from "@/features/cashier-shift/components/close-cashier-shift-sheet.component";
 import { OpenCashierShiftSheet } from "@/features/cashier-shift/components/open-cashier-shift-sheet.component";
 import { PERMISSIONS } from "@/components/rbac/permissions";
@@ -61,6 +63,7 @@ export default function PosPage() {
   );
   const [openShiftSheetOpen, setOpenShiftSheetOpen] = useState(false);
   const [closeShiftSheetOpen, setCloseShiftSheetOpen] = useState(false);
+  const [cashMovementSheetOpen, setCashMovementSheetOpen] = useState(false);
   const [checkoutDialogOpen, setCheckoutDialogOpen] = useState(false);
   const canCreateTransaction = canAccess({
     anyOf: [PERMISSIONS.pos.transaction],
@@ -561,25 +564,39 @@ export default function PosPage() {
                 </div>
               </div>
             ) : null}
-            <Button
-              className="mt-3 w-full"
-              disabled={
-                !canCreateTransaction ||
-                !selectedLocationId ||
-                currentShiftQuery.isLoading
-              }
-              onClick={() =>
-                currentShift
-                  ? setCloseShiftSheetOpen(true)
-                  : setOpenShiftSheetOpen(true)
-              }
-              size="sm"
-              type="button"
-              variant={currentShift ? "outline" : "default"}
-            >
-              <CircleDollarSign className="size-4" />
-              {currentShift ? "Close shift" : "Open shift"}
-            </Button>
+            <div className="mt-3 flex gap-2">
+              <Button
+                className="flex-1"
+                disabled={
+                  !canCreateTransaction ||
+                  !selectedLocationId ||
+                  currentShiftQuery.isLoading
+                }
+                onClick={() =>
+                  currentShift
+                    ? setCloseShiftSheetOpen(true)
+                    : setOpenShiftSheetOpen(true)
+                }
+                size="sm"
+                type="button"
+                variant={currentShift ? "outline" : "default"}
+              >
+                <CircleDollarSign className="size-4" />
+                {currentShift ? "Close shift" : "Open shift"}
+              </Button>
+              {currentShift ? (
+                <Button
+                  disabled={!canCreateTransaction}
+                  onClick={() => setCashMovementSheetOpen(true)}
+                  size="sm"
+                  type="button"
+                  variant="outline"
+                >
+                  <Wallet className="size-4" />
+                  Cash movement
+                </Button>
+              ) : null}
+            </div>
           </div>
 
           <label className="grid gap-1 text-sm">
@@ -680,6 +697,12 @@ export default function PosPage() {
         onOpenChange={setCloseShiftSheetOpen}
         open={closeShiftSheetOpen}
         shift={currentShift}
+      />
+
+      <CashMovementFormSheet
+        cashierShiftId={currentShift?.id}
+        onOpenChange={setCashMovementSheetOpen}
+        open={cashMovementSheetOpen}
       />
 
       <Dialog onOpenChange={setCheckoutDialogOpen} open={checkoutDialogOpen}>

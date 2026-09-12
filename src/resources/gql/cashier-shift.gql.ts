@@ -4,12 +4,60 @@ import type {
   CashierShiftEntity,
   CashierShiftFilterInput,
   CashierShiftReportEntity,
+  CashMovementEntity,
+  CashMovementFilterInput,
   CloseCashierShiftInput,
+  CreateCashMovementInput,
   OpenCashierShiftInput,
   PaginatedCashierShifts,
+  PaginatedCashMovements,
 } from "@/graphql/generated";
 import { ErrorHelper } from "@/libs/error";
 import { gqlClient } from "@/libs/graphql";
+
+const CASH_MOVEMENT_FIELDS = /* GraphQL */ `
+  fragment CashMovementFields on CashMovementEntity {
+    id
+    cashierShiftId
+    locationId
+    locationName
+    createdByUserId
+    createdByUserName
+    type
+    reason
+    amount
+    notes
+    createdAt
+  }
+`;
+
+const CREATE_CASH_MOVEMENT = /* GraphQL */ `
+  ${CASH_MOVEMENT_FIELDS}
+  mutation CreateCashMovement($input: CreateCashMovementInput!) {
+    createCashMovement(input: $input) {
+      ...CashMovementFields
+    }
+  }
+`;
+
+const GET_CASH_MOVEMENTS = /* GraphQL */ `
+  ${CASH_MOVEMENT_FIELDS}
+  query GetCashMovements($page: Int, $limit: Int, $filter: CashMovementFilterInput) {
+    cashMovements(page: $page, limit: $limit, filter: $filter) {
+      data {
+        ...CashMovementFields
+      }
+      meta {
+        page
+        limit
+        totalCount
+        totalPages
+        hasNextPage
+        hasPrevPage
+      }
+    }
+  }
+`;
 
 const CASHIER_SHIFT_FIELDS = /* GraphQL */ `
   fragment CashierShiftFields on CashierShiftEntity {
@@ -217,6 +265,63 @@ export function useCloseCashierShift() {
         cashierShiftKeys.current(data.closeCashierShift.locationId),
         null,
       );
+    },
+    onError: (error: unknown) => {
+      throw ErrorHelper.parse(error);
+    },
+  });
+}
+
+type CashMovementListParams = {
+  page?: number;
+  limit?: number;
+  filter?: CashMovementFilterInput;
+};
+
+export const cashMovementKeys = {
+  all: ["cash-movements"] as const,
+  lists: () => [...cashMovementKeys.all, "list"] as const,
+  list: (params: CashMovementListParams) =>
+    [...cashMovementKeys.lists(), params] as const,
+};
+
+export function useCashMovements(
+  params: CashMovementListParams = {},
+  enabled = true,
+) {
+  const queryParams = {
+    page: params.page ?? 1,
+    limit: params.limit ?? 50,
+    filter: params.filter,
+  };
+
+  return useQuery({
+    enabled,
+    queryKey: cashMovementKeys.list(queryParams),
+    queryFn: () =>
+      gqlClient.request<{ cashMovements: PaginatedCashMovements }>(
+        GET_CASH_MOVEMENTS,
+        queryParams,
+      ),
+    select: (data) => data.cashMovements,
+  });
+}
+
+export function useCreateCashMovement() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (input: CreateCashMovementInput) =>
+      gqlClient.request<{ createCashMovement: CashMovementEntity }>(
+        CREATE_CASH_MOVEMENT,
+        { input },
+      ),
+    onSuccess: (data) => {
+      queryClient.invalidateQueries({ queryKey: cashMovementKeys.all });
+      queryClient.invalidateQueries({
+        queryKey: cashierShiftKeys.current(data.createCashMovement.locationId),
+      });
+      queryClient.invalidateQueries({ queryKey: cashierShiftKeys.lists() });
     },
     onError: (error: unknown) => {
       throw ErrorHelper.parse(error);

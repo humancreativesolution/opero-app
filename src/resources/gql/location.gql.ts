@@ -17,6 +17,7 @@ const GET_LOCATIONS = /* GraphQL */ `
         id
         name
         type
+        isActive
         createdAt
         updatedAt
       }
@@ -38,6 +39,7 @@ const GET_LOCATIONS_BY_TENANT = /* GraphQL */ `
       id
       name
       type
+      isActive
       createdAt
       updatedAt
     }
@@ -50,6 +52,7 @@ const CREATE_LOCATION = /* GraphQL */ `
       id
       name
       type
+      isActive
       createdAt
       updatedAt
     }
@@ -62,6 +65,7 @@ const UPDATE_LOCATION = /* GraphQL */ `
       id
       name
       type
+      isActive
       createdAt
       updatedAt
     }

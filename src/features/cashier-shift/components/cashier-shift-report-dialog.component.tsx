@@ -10,7 +10,10 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { cn } from "@/libs/utils";
-import { useCashierShiftReport } from "@/resources/gql/cashier-shift.gql";
+import {
+  useCashierShiftReport,
+  useCashMovements,
+} from "@/resources/gql/cashier-shift.gql";
 
 const currencyFormatter = new Intl.NumberFormat("id-ID", {
   style: "currency",
@@ -81,6 +84,11 @@ export function CashierShiftReportDialog({
   const report = reportQuery.data;
   const isLiveReport = report?.status === "OPEN";
   const variance = report?.variance ?? 0;
+  const cashMovementsQuery = useCashMovements(
+    { filter: { cashierShiftId: shiftId ?? undefined }, limit: 100 },
+    open && Boolean(shiftId),
+  );
+  const cashMovements = cashMovementsQuery.data?.data ?? [];
 
   return (
     <Dialog onOpenChange={onOpenChange} open={open}>
@@ -281,6 +289,52 @@ export function CashierShiftReportDialog({
                 </CardContent>
               </Card>
             </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">Cash movements</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                {cashMovements.length > 0 ? (
+                  cashMovements.map((movement) => (
+                    <div
+                      className="flex items-center justify-between rounded-lg border p-3 text-sm"
+                      key={movement.id}
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {movement.type === "CASH_IN" ? "Cash in" : "Cash out"} ·{" "}
+                          {movement.reason.replaceAll("_", " ")}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {movement.createdByUserName} · {formatDate(movement.createdAt)}
+                        </p>
+                        {movement.notes ? (
+                          <p className="text-xs text-muted-foreground">
+                            {movement.notes}
+                          </p>
+                        ) : null}
+                      </div>
+                      <span
+                        className={cn(
+                          "font-semibold",
+                          movement.type === "CASH_IN"
+                            ? "text-emerald-700 dark:text-emerald-300"
+                            : "text-red-700 dark:text-red-300",
+                        )}
+                      >
+                        {movement.type === "CASH_IN" ? "+" : "-"}
+                        {formatCurrency(movement.amount)}
+                      </span>
+                    </div>
+                  ))
+                ) : (
+                  <p className="rounded-lg border p-3 text-sm text-muted-foreground">
+                    No cash movements recorded for this shift.
+                  </p>
+                )}
+              </CardContent>
+            </Card>
           </div>
         ) : null}
       </DialogContent>
